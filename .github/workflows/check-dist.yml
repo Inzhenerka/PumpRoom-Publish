@@ -37,13 +37,18 @@ jobs:
           node-version-file: .node-version
           cache: npm
 
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: 1.2.16
+
       - name: Install Dependencies
         id: install
-        run: npm ci
+        run: bun install
 
       - name: Build dist/ Directory
         id: build
-        run: npm run bundle
+        run: bun bundle
 
       # This will fail the workflow if the `dist/` directory is different than
       # expected.
