@@ -1,35 +1,17 @@
-# Create a GitHub Action Using TypeScript
+# PumpRoom Publish
 
-[![GitHub Super-Linter](https://github.com/actions/typescript-action/actions/workflows/linter.yml/badge.svg)](https://github.com/super-linter/super-linter)
-![CI](https://github.com/actions/typescript-action/actions/workflows/ci.yml/badge.svg)
-[![Check dist/](https://github.com/actions/typescript-action/actions/workflows/check-dist.yml/badge.svg)](https://github.com/actions/typescript-action/actions/workflows/check-dist.yml)
-[![CodeQL](https://github.com/actions/typescript-action/actions/workflows/codeql-analysis.yml/badge.svg)](https://github.com/actions/typescript-action/actions/workflows/codeql-analysis.yml)
-[![Coverage](./badges/coverage.svg)](./badges/coverage.svg)
+GitHub Action to upload tasks to PumpRoom LMS
 
-Use this template to bootstrap the creation of a TypeScript action. :rocket:
+This action packages a repository into a ZIP archive and uploads it to the
+PumpRoom platform.
 
-This template includes compilation support, tests, a validation workflow,
-publishing, and versioning guidance.
+## Features
 
-If you are new, there's also a simpler introduction in the
-[Hello world JavaScript action repository](https://github.com/actions/hello-world-javascript-action).
-
-## Create Your Own Action
-
-To create your own action, you can use this repository as a template! Just
-follow the below instructions:
-
-1. Click the **Use this template** button at the top of the repository
-1. Select **Create a new repository**
-1. Select an owner and name for your new repository
-1. Click **Create repository**
-1. Clone your new repository
-
-> [!IMPORTANT]
->
-> Make sure to remove or update the [`CODEOWNERS`](./CODEOWNERS) file! For
-> details on how to use this file, see
-> [About code owners](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners).
+- Creates a ZIP archive of the specified directory
+- Automatically excludes `.git` and `.github` directories
+- Allows specifying additional files/directories to ignore
+- Uploads the archive to the PumpRoom API
+- Provides detailed error messages if the upload fails
 
 ## Initial Setup
 
@@ -50,19 +32,19 @@ need to perform some initial setup steps before you can develop your action.
 1. :hammer_and_wrench: Install the dependencies
 
    ```bash
-   npm install
+   bun install
    ```
 
 1. :building_construction: Package the TypeScript for distribution
 
    ```bash
-   npm run bundle
+   bun bundle
    ```
 
 1. :white_check_mark: Run the tests
 
    ```bash
-   $ npm test
+   $ bun run test
 
    PASS  ./index.test.js
      ✓ throws invalid number (3ms)
@@ -121,7 +103,7 @@ So, what are you waiting for? Go ahead and start customizing your action!
 1. Format, test, and build the action
 
    ```bash
-   npm run all
+   bun all
    ```
 
    > This step is important! It will run [`rollup`](https://rollupjs.org/) to
@@ -206,31 +188,70 @@ For example workflow runs, check out the
 
 ## Usage
 
-After testing, you can create version tag(s) that developers can use to
-reference different stable versions of your action. For more information, see
-[Versioning](https://github.com/actions/toolkit/blob/main/docs/action-versioning.md)
-in the GitHub Actions toolkit.
-
-To include the action in a workflow in another repository, you can use the
-`uses` syntax with the `@` symbol to reference a specific branch, tag, or commit
-hash.
+To use this action in your workflow, add the following step:
 
 ```yaml
 steps:
   - name: Checkout
-    id: checkout
     uses: actions/checkout@v4
 
-  - name: Test Local Action
-    id: test-action
-    uses: actions/typescript-action@v1 # Commit with the `v1` tag
+  - name: Upload to PumpRoom
+    uses: inzhenerka/pumproom-publish@v1
     with:
-      milliseconds: 1000
+      # Directory to be archived and uploaded (defaults to repository root)
+      root_dir: ''
 
-  - name: Print Output
-    id: output
-    run: echo "${{ steps.test-action.outputs.time }}"
+      # Files and directories to ignore (comma-separated)
+      # .git and .github are always ignored
+      ignore: 'node_modules,dist,coverage'
+
+      # Required: Realm identifier for the repository
+      realm: 'your-realm-name'
+
+      # Required: Repository name
+      repo_name: 'your-repo-name'
+
+      # Required: API key for authentication
+      api_key: ${{ secrets.PUMPROOM_API_KEY }}
 ```
+
+### Inputs
+
+| Input       | Description                                       | Required | Default                |
+| ----------- | ------------------------------------------------- | -------- | ---------------------- |
+| `root_dir`  | Directory to be archived and uploaded             | No       | `''` (repository root) |
+| `ignore`    | Files and directories to ignore (comma-separated) | No       | `''`                   |
+| `realm`     | Realm identifier for the repository               | Yes      | N/A                    |
+| `repo_name` | Repository name                                   | Yes      | N/A                    |
+| `api_key`   | API key for authentication                        | Yes      | N/A                    |
+
+### Example Workflow
+
+```yaml
+name: Upload to PumpRoom
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  upload:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Upload to PumpRoom
+        uses: inzhenerka/pumproom-publish@v1
+        with:
+          realm: 'production'
+          repo_name: 'my-awesome-repo'
+          ignore: 'node_modules,dist,coverage'
+          api_key: ${{ secrets.PUMPROOM_API_KEY }}
+```
+
+> **Note:** Make sure to store your API key as a secret in your repository
+> settings.
 
 ## Publishing a New Release
 
@@ -259,47 +280,9 @@ following steps:
    to create a new release in GitHub so users can easily reference the new tags
    in their workflows.
 
-## Dependency License Management
-
-This template includes a GitHub Actions workflow,
-[`licensed.yml`](./.github/workflows/licensed.yml), that uses
-[Licensed](https://github.com/licensee/licensed) to check for dependencies with
-missing or non-compliant licenses. This workflow is initially disabled. To
-enable the workflow, follow the below steps.
-
-1. Open [`licensed.yml`](./.github/workflows/licensed.yml)
-1. Uncomment the following lines:
-
-   ```yaml
-   # pull_request:
-   #   branches:
-   #     - main
-   # push:
-   #   branches:
-   #     - main
-   ```
-
 1. Save and commit the changes
 
 Once complete, this workflow will run any time a pull request is created or
 changes pushed directly to `main`. If the workflow detects any dependencies with
 missing or non-compliant licenses, it will fail the workflow and provide details
 on the issue(s) found.
-
-### Updating Licenses
-
-Whenever you install or update dependencies, you can use the Licensed CLI to
-update the licenses database. To install Licensed, see the project's
-[Readme](https://github.com/licensee/licensed?tab=readme-ov-file#installation).
-
-To update the cached licenses, run the following command:
-
-```bash
-licensed cache
-```
-
-To check the status of cached licenses, run the following command:
-
-```bash
-licensed status
-```
