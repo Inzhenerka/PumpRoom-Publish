@@ -6,12 +6,13 @@
  * so that the actual '@actions/core' module is not imported.
  */
 import { jest } from '@jest/globals'
-import * as core from '../__fixtures__/core.ts'
-import * as fs from '../__fixtures__/fs.ts'
-import * as path from '../__fixtures__/path.ts'
-import { admZip } from '../__fixtures__/adm-zip.ts'
-import { axios } from '../__fixtures__/axios.ts'
-import { FormData, fileFromPath } from '../__fixtures__/formdata-node.ts'
+import type { Mock } from 'jest-mock'
+import * as core from '../__fixtures__/core.js'
+import * as fs from '../__fixtures__/fs.js'
+import * as path from '../__fixtures__/path.js'
+import { admZip } from '../__fixtures__/adm-zip.js'
+import { axios } from '../__fixtures__/axios.js'
+import { FormData, fileFromPath } from '../__fixtures__/formdata-node.js'
 
 // Mocks should be declared before the module being tested is imported.
 jest.unstable_mockModule('@actions/core', () => core)
@@ -38,6 +39,15 @@ interface PumpRoomApiResponse {
   tasks_synchronized_with_cms: number
 }
 
+// Define more specific error types
+interface AxiosError extends Error {
+  isAxiosError: boolean
+  response?: {
+    status: number
+    data: unknown
+  }
+}
+
 let run: () => Promise<void>
 let formatPumpRoomResponse: (response: PumpRoomApiResponse) => string
 let validateUniqueFolderNames: (rootDir: string) => Promise<void>
@@ -45,7 +55,7 @@ let validateInzhenerkaYml: (rootDir: string) => Promise<void>
 
 // Import the module in beforeAll to ensure mocks are set up first
 beforeAll(async () => {
-  const mainModule = await import('../src/main.ts')
+  const mainModule = await import('../src/main.js')
   run = mainModule.run
   formatPumpRoomResponse = mainModule.formatPumpRoomResponse
   validateUniqueFolderNames = mainModule.validateUniqueFolderNames
@@ -61,24 +71,31 @@ describe('main.ts', () => {
 
   beforeEach(() => {
     // Mock process.cwd()
-    process.cwd = jest.fn().mockReturnValue('/mock/cwd')
+    process.cwd = jest.fn(() => '/mock/cwd') as Mock<() => string>
 
-    // Set up path.join mock
-    path.join.mockImplementation((...args) => args.join('/'))
+    // Set up path.join mock with proper typing
+    ;(path.join as Mock).mockImplementation((...args: unknown[]) =>
+      (args as string[]).join('/')
+    )
 
     // Set up fs mocks
-    fs.readdirSync.mockReturnValue(['file1.txt', 'file2.txt', 'dir1'])
-    fs.statSync.mockImplementation((filePath) => ({
+    ;(fs.readdirSync as Mock).mockReturnValue([
+      'file1.txt',
+      'file2.txt',
+      'dir1'
+    ])
+    ;(fs.statSync as Mock).mockImplementation((filePath: unknown) => ({
       isDirectory: () => {
         if (!filePath || typeof filePath !== 'string') return false
         return filePath.includes('dir')
       }
     }))
-    fs.unlinkSync.mockImplementation(() => {})
+    ;(fs.unlinkSync as Mock).mockImplementation(() => {})
 
     // Set up core.getInput mocks for different inputs
-    core.getInput.mockImplementation((name) => {
-      switch (name) {
+    ;(core.getInput as Mock).mockImplementation((name: unknown) => {
+      const inputName = name as string
+      switch (inputName) {
         case 'root_dir':
           return mockRootDir
         case 'ignore':
@@ -95,7 +112,7 @@ describe('main.ts', () => {
     })
 
     // Set up axios mock with the expected response format
-    axios.post.mockResolvedValue({
+    ;(axios.post as Mock).mockResolvedValue({
       status: 200,
       data: {
         repo_updated: true,
@@ -114,7 +131,7 @@ describe('main.ts', () => {
     // No need to mock prototype methods
 
     // Set up fileFromPath mock
-    fileFromPath.mockResolvedValue(mockFile)
+    ;(fileFromPath as Mock).mockResolvedValue(mockFile)
   })
 
   afterEach(() => {
@@ -123,10 +140,10 @@ describe('main.ts', () => {
 
   it('Creates a ZIP archive and uploads it successfully', async () => {
     // Set up fs.readdirSync to return some files for the createZipArchive function
-    fs.readdirSync.mockReturnValue(['file1.txt', 'dir1'])
+    ;(fs.readdirSync as Mock).mockReturnValue(['file1.txt', 'dir1'])
 
     // Set up fs.statSync to identify directories correctly
-    fs.statSync.mockImplementation((filePath) => ({
+    ;(fs.statSync as Mock).mockImplementation((filePath: unknown) => ({
       isDirectory: () => {
         if (!filePath || typeof filePath !== 'string') return false
         return filePath.includes('dir')
@@ -178,7 +195,7 @@ describe('main.ts', () => {
 
   it('Handles API error correctly', async () => {
     // Create a custom error object that will be recognized as an Axios error
-    const axiosError = new Error('API Error')
+    const axiosError: AxiosError = new Error('API Error') as AxiosError
     Object.defineProperty(axiosError, 'isAxiosError', { value: true })
     Object.defineProperty(axiosError, 'response', {
       value: {
@@ -188,12 +205,18 @@ describe('main.ts', () => {
     })
 
     // Mock axios.isAxiosError to return true for this error
-    axios.isAxiosError.mockImplementation((error) => {
-      return error && error.isAxiosError === true
+    ;(axios.isAxiosError as Mock).mockImplementation((error: unknown) => {
+      return (
+        error &&
+        typeof error === 'object' &&
+        error !== null &&
+        'isAxiosError' in error &&
+        (error as AxiosError).isAxiosError === true
+      )
     })
 
     // Mock axios.post to reject with the error
-    axios.post.mockRejectedValueOnce(axiosError)
+    ;(axios.post as Mock).mockRejectedValueOnce(axiosError)
 
     // Run the function - it should catch the error internally
     await run()
@@ -208,7 +231,7 @@ describe('main.ts', () => {
 
   it('Handles file system error correctly', async () => {
     // Mock file system error
-    fs.readdirSync.mockImplementationOnce(() => {
+    ;(fs.readdirSync as Mock).mockImplementationOnce(() => {
       throw new Error('File system error')
     })
 
@@ -226,8 +249,12 @@ describe('main.ts', () => {
       jest.resetAllMocks()
 
       // Default mock for fs.readdirSync and fs.statSync
-      fs.readdirSync.mockReturnValue(['folder1', 'folder2', 'file.txt'])
-      fs.statSync.mockImplementation((filePath) => ({
+      ;(fs.readdirSync as Mock).mockReturnValue([
+        'folder1',
+        'folder2',
+        'file.txt'
+      ])
+      ;(fs.statSync as Mock).mockImplementation((filePath: unknown) => ({
         isDirectory: () => {
           if (!filePath || typeof filePath !== 'string') return false
           return !filePath.includes('file')
@@ -237,8 +264,8 @@ describe('main.ts', () => {
 
     it('Successfully validates when no duplicates exist', async () => {
       // Mock directories that will be recognized by isDirectory
-      fs.readdirSync.mockReturnValue(['dir1', 'dir2'])
-      fs.statSync.mockImplementation(() => ({
+      ;(fs.readdirSync as Mock).mockReturnValue(['dir1', 'dir2'])
+      ;(fs.statSync as Mock).mockImplementation(() => ({
         isDirectory: () => true
       }))
 
@@ -250,8 +277,12 @@ describe('main.ts', () => {
 
     it('Detects case-insensitive duplicates', async () => {
       // Mock folders with case-insensitive duplicates
-      fs.readdirSync.mockReturnValue(['Folder1', 'folder1', 'folder2'])
-      fs.statSync.mockImplementation(() => ({
+      ;(fs.readdirSync as Mock).mockReturnValue([
+        'Folder1',
+        'folder1',
+        'folder2'
+      ])
+      ;(fs.statSync as Mock).mockImplementation(() => ({
         isDirectory: () => true
       }))
 
@@ -263,7 +294,7 @@ describe('main.ts', () => {
 
     it('Handles empty directory', async () => {
       // Mock empty directory
-      fs.readdirSync.mockReturnValue([])
+      ;(fs.readdirSync as Mock).mockReturnValue([])
 
       await validateUniqueFolderNames(mockRootDir)
 
@@ -273,8 +304,8 @@ describe('main.ts', () => {
 
     it('Handles directory with no subdirectories', async () => {
       // Mock directory with only files
-      fs.readdirSync.mockReturnValue(['file1.txt', 'file2.txt'])
-      fs.statSync.mockImplementation(() => ({
+      ;(fs.readdirSync as Mock).mockReturnValue(['file1.txt', 'file2.txt'])
+      ;(fs.statSync as Mock).mockImplementation(() => ({
         isDirectory: () => false
       }))
 
@@ -291,11 +322,11 @@ describe('main.ts', () => {
       jest.resetAllMocks()
 
       // Default mock for fs.existsSync and fs.readFileSync
-      fs.existsSync.mockReturnValue(true)
-      fs.readFileSync.mockReturnValue('valid: yaml\ncontent: true')
+      ;(fs.existsSync as Mock).mockReturnValue(true)
+      ;(fs.readFileSync as Mock).mockReturnValue('valid: yaml\ncontent: true')
 
       // Default mock for axios.post
-      axios.post.mockResolvedValue({ status: 200 })
+      ;(axios.post as Mock).mockResolvedValue({ status: 200 })
     })
 
     it('Successfully validates when configuration is valid', async () => {
@@ -307,7 +338,7 @@ describe('main.ts', () => {
 
     it('Throws error when configuration file is not found', async () => {
       // Mock file not found
-      fs.existsSync.mockReturnValue(false)
+      ;(fs.existsSync as Mock).mockReturnValue(false)
 
       // Expect the function to throw an error
       await expect(validateInzhenerkaYml(mockRootDir)).rejects.toThrow(
@@ -317,7 +348,7 @@ describe('main.ts', () => {
 
     it('Throws error when API returns non-200 status', async () => {
       // Mock API error
-      axios.post.mockResolvedValue({ status: 400 })
+      ;(axios.post as Mock).mockResolvedValue({ status: 400 })
 
       // Expect the function to throw an error
       await expect(validateInzhenerkaYml(mockRootDir)).rejects.toThrow(
@@ -327,7 +358,7 @@ describe('main.ts', () => {
 
     it('Handles API request error', async () => {
       // Create a custom error object that will be recognized as an Axios error
-      const axiosError = new Error('API Error')
+      const axiosError: AxiosError = new Error('API Error') as AxiosError
       Object.defineProperty(axiosError, 'isAxiosError', { value: true })
       Object.defineProperty(axiosError, 'response', {
         value: {
@@ -337,12 +368,18 @@ describe('main.ts', () => {
       })
 
       // Mock axios.isAxiosError to return true for this error
-      axios.isAxiosError.mockImplementation((error) => {
-        return error && error.isAxiosError === true
+      ;(axios.isAxiosError as Mock).mockImplementation((error: unknown) => {
+        return (
+          error &&
+          typeof error === 'object' &&
+          error !== null &&
+          'isAxiosError' in error &&
+          (error as AxiosError).isAxiosError === true
+        )
       })
 
       // Mock axios.post to reject with the error
-      axios.post.mockRejectedValueOnce(axiosError)
+      ;(axios.post as Mock).mockRejectedValueOnce(axiosError)
 
       // Expect the function to throw an error
       await expect(validateInzhenerkaYml(mockRootDir)).rejects.toThrow(

@@ -1,194 +1,22 @@
 # PumpRoom Publish
 
-GitHub Action to upload tasks to PumpRoom LMS
+GitHub Action для загрузки заданий в LMS PumpRoom
 
-This action packages a repository into a ZIP archive and uploads it to the
-PumpRoom platform.
+Это действие упаковывает репозиторий в ZIP-архив и загружает его на платформу
+PumpRoom.
 
-## Features
+## Возможности
 
-- Creates a ZIP archive of the specified directory
-- Automatically excludes `.git` and `.github` directories
-- Allows specifying additional files/directories to ignore
-- Uploads the archive to the PumpRoom API
-- Provides detailed error messages if the upload fails
+- Создает ZIP-архив указанного каталога
+- Автоматически исключает каталоги `.git` и `.github`
+- Позволяет указать дополнительные файлы/каталоги для исключения
+- Загружает архив в API PumpRoom
+- Предоставляет подробные сообщения об ошибках в случае неудачной загрузки
 
-## Initial Setup
+## Использование
 
-After you've cloned the repository to your local machine or codespace, you'll
-need to perform some initial setup steps before you can develop your action.
-
-> [!NOTE]
->
-> You'll need to have a reasonably modern version of
-> [Node.js](https://nodejs.org) handy (20.x or later should work!). If you are
-> using a version manager like [`nodenv`](https://github.com/nodenv/nodenv) or
-> [`fnm`](https://github.com/Schniz/fnm), this template has a `.node-version`
-> file at the root of the repository that can be used to automatically switch to
-> the correct version when you `cd` into the repository. Additionally, this
-> `.node-version` file is used by GitHub Actions in any `actions/setup-node`
-> actions.
-
-1. :hammer_and_wrench: Install the dependencies
-
-   ```bash
-   bun install
-   ```
-
-1. :building_construction: Package the TypeScript for distribution
-
-   ```bash
-   bun bundle
-   ```
-
-1. :white_check_mark: Run the tests
-
-   ```bash
-   $ bun run test
-
-   PASS  ./index.test.js
-     ✓ throws invalid number (3ms)
-     ✓ wait 500 ms (504ms)
-     ✓ test runs (95ms)
-
-   ...
-   ```
-
-## Update the Action Metadata
-
-The [`action.yml`](action.yml) file defines metadata about your action, such as
-input(s) and output(s). For details about this file, see
-[Metadata syntax for GitHub Actions](https://docs.github.com/en/actions/creating-actions/metadata-syntax-for-github-actions).
-
-When you copy this repository, update `action.yml` with the name, description,
-inputs, and outputs for your action.
-
-## Update the Action Code
-
-The [`src/`](./src/) directory is the heart of your action! This contains the
-source code that will be run when your action is invoked. You can replace the
-contents of this directory with your own code.
-
-There are a few things to keep in mind when writing your action code:
-
-- Most GitHub Actions toolkit and CI/CD operations are processed asynchronously.
-  In `main.ts`, you will see that the action is run in an `async` function.
-
-  ```javascript
-  import * as core from '@actions/core'
-  //...
-
-  async function run() {
-    try {
-      //...
-    } catch (error) {
-      core.setFailed(error.message)
-    }
-  }
-  ```
-
-  For more information about the GitHub Actions toolkit, see the
-  [documentation](https://github.com/actions/toolkit/blob/main/README.md).
-
-So, what are you waiting for? Go ahead and start customizing your action!
-
-1. Create a new branch
-
-   ```bash
-   git checkout -b releases/v1
-   ```
-
-1. Replace the contents of `src/` with your action code
-1. Add tests to `__tests__/` for your source code
-1. Format, test, and build the action
-
-   ```bash
-   bun all
-   ```
-
-   > This step is important! It will run [`rollup`](https://rollupjs.org/) to
-   > build the final JavaScript action code with all dependencies included. If
-   > you do not run this step, your action will not work correctly when it is
-   > used in a workflow.
-
-1. (Optional) Test your action locally
-
-   The [`@github/local-action`](https://github.com/github/local-action) utility
-   can be used to test your action locally. It is a simple command-line tool
-   that "stubs" (or simulates) the GitHub Actions Toolkit. This way, you can run
-   your TypeScript action locally without having to commit and push your changes
-   to a repository.
-
-   The `local-action` utility can be run in the following ways:
-   - Visual Studio Code Debugger
-
-     Make sure to review and, if needed, update
-     [`.vscode/launch.json`](./.vscode/launch.json)
-
-   - Terminal/Command Prompt
-
-     ```bash
-     # npx @github/local action <action-yaml-path> <entrypoint> <dotenv-file>
-     npx @github/local-action . src/main.ts .env
-     ```
-
-   You can provide a `.env` file to the `local-action` CLI to set environment
-   variables used by the GitHub Actions Toolkit. For example, setting inputs and
-   event payload data used by your action. For more information, see the example
-   file, [`.env.example`](./.env.example), and the
-   [GitHub Actions Documentation](https://docs.github.com/en/actions/learn-github-actions/variables#default-environment-variables).
-
-1. Commit your changes
-
-   ```bash
-   git add .
-   git commit -m "My first action is ready!"
-   ```
-
-1. Push them to your repository
-
-   ```bash
-   git push -u origin releases/v1
-   ```
-
-1. Create a pull request and get feedback on your action
-1. Merge the pull request into the `main` branch
-
-Your action is now published! :rocket:
-
-For information about versioning your action, see
-[Versioning](https://github.com/actions/toolkit/blob/main/docs/action-versioning.md)
-in the GitHub Actions toolkit.
-
-## Validate the Action
-
-You can now validate the action by referencing it in a workflow file. For
-example, [`ci.yml`](./.github/workflows/ci.yml) demonstrates how to reference an
-action in the same repository.
-
-```yaml
-steps:
-  - name: Checkout
-    id: checkout
-    uses: actions/checkout@v4
-
-  - name: Test Local Action
-    id: test-action
-    uses: ./
-    with:
-      milliseconds: 1000
-
-  - name: Print Output
-    id: output
-    run: echo "${{ steps.test-action.outputs.time }}"
-```
-
-For example workflow runs, check out the
-[Actions tab](https://github.com/actions/typescript-action/actions)! :rocket:
-
-## Usage
-
-To use this action in your workflow, add the following step:
+Чтобы использовать это действие в вашем рабочем процессе, добавьте следующий
+шаг:
 
 ```yaml
 steps:
@@ -198,34 +26,34 @@ steps:
   - name: Upload to PumpRoom
     uses: inzhenerka/pumproom-publish@v1
     with:
-      # Directory to be archived and uploaded (defaults to repository root)
+      # Каталог для архивации и загрузки (по умолчанию корень репозитория)
       root_dir: ''
 
-      # Files and directories to ignore (comma-separated)
-      # .git and .github are always ignored
+      # Файлы и каталоги для исключения (разделенные запятыми)
+      # .git и .github всегда исключаются
       ignore: 'node_modules,dist,coverage'
 
-      # Required: Realm identifier for the repository
+      # Обязательно: Идентификатор области для репозитория
       realm: 'your-realm-name'
 
-      # Required: Repository name
+      # Обязательно: Имя репозитория
       repo_name: 'your-repo-name'
 
-      # Required: API key for authentication
+      # Обязательно: API-ключ для аутентификации
       api_key: ${{ secrets.PUMPROOM_API_KEY }}
 ```
 
-### Inputs
+### Входные параметры
 
-| Input       | Description                                       | Required | Default                |
-| ----------- | ------------------------------------------------- | -------- | ---------------------- |
-| `root_dir`  | Directory to be archived and uploaded             | No       | `''` (repository root) |
-| `ignore`    | Files and directories to ignore (comma-separated) | No       | `''`                   |
-| `realm`     | Realm identifier for the repository               | Yes      | N/A                    |
-| `repo_name` | Repository name                                   | Yes      | N/A                    |
-| `api_key`   | API key for authentication                        | Yes      | N/A                    |
+| Параметр    | Описание                                        | Обязательный | По умолчанию              |
+| ----------- | ----------------------------------------------- | ------------ | ------------------------- |
+| `root_dir`  | Каталог для архивации и загрузки                | Нет          | `''` (корень репозитория) |
+| `ignore`    | Файлы и каталоги для исключения (через запятую) | Нет          | `''`                      |
+| `realm`     | Идентификатор области для репозитория           | Да           | Н/Д                       |
+| `repo_name` | Имя репозитория                                 | Да           | Н/Д                       |
+| `api_key`   | API-ключ для аутентификации                     | Да           | Н/Д                       |
 
-### Example Workflow
+### Пример рабочего процесса
 
 ```yaml
 name: Upload to PumpRoom
@@ -250,39 +78,217 @@ jobs:
           api_key: ${{ secrets.PUMPROOM_API_KEY }}
 ```
 
-> **Note:** Make sure to store your API key as a secret in your repository
-> settings.
+> **Примечание:** Убедитесь, что вы сохранили свой API-ключ как секрет в
+> настройках вашего репозитория.
 
-## Publishing a New Release
+## Начальная настройка
 
-This project includes a helper script, [`script/release`](./script/release)
-designed to streamline the process of tagging and pushing new releases for
-GitHub Actions.
+После клонирования репозитория на локальную машину или в codespace, вам
+необходимо выполнить несколько начальных шагов настройки, прежде чем вы сможете
+разрабатывать свое действие.
 
-GitHub Actions allows users to select a specific version of the action to use,
-based on release tags. This script simplifies this process by performing the
-following steps:
+> [!ПРИМЕЧАНИЕ]
+>
+> Вам понадобится достаточно современная версия [Node.js](https://nodejs.org)
+> (20.x или новее должна работать!). Если вы используете менеджер версий, такой
+> как [`nodenv`](https://github.com/nodenv/nodenv) или
+> [`fnm`](https://github.com/Schniz/fnm), этот шаблон имеет файл `.node-version`
+> в корне репозитория, который может использоваться для автоматического
+> переключения на правильную версию при переходе в репозиторий с помощью `cd`.
+> Кроме того, этот файл `.node-version` используется GitHub Actions в любых
+> действиях `actions/setup-node`.
 
-1. **Retrieving the latest release tag:** The script starts by fetching the most
-   recent SemVer release tag of the current branch, by looking at the local data
-   available in your repository.
-1. **Prompting for a new release tag:** The user is then prompted to enter a new
-   release tag. To assist with this, the script displays the tag retrieved in
-   the previous step, and validates the format of the inputted tag (vX.X.X). The
-   user is also reminded to update the version field in package.json.
-1. **Tagging the new release:** The script then tags a new release and syncs the
-   separate major tag (e.g. v1, v2) with the new release tag (e.g. v1.0.0,
-   v2.1.2). When the user is creating a new major release, the script
-   auto-detects this and creates a `releases/v#` branch for the previous major
-   version.
-1. **Pushing changes to remote:** Finally, the script pushes the necessary
-   commits, tags and branches to the remote repository. From here, you will need
-   to create a new release in GitHub so users can easily reference the new tags
-   in their workflows.
+1. :hammer_and_wrench: Установите зависимости
 
-1. Save and commit the changes
+   ```bash
+   bun install
+   ```
 
-Once complete, this workflow will run any time a pull request is created or
-changes pushed directly to `main`. If the workflow detects any dependencies with
-missing or non-compliant licenses, it will fail the workflow and provide details
-on the issue(s) found.
+1. :building_construction: Упакуйте TypeScript для распространения
+
+   ```bash
+   bun bundle
+   ```
+
+1. :white_check_mark: Запустите тесты
+
+   ```bash
+   $ bun run test
+
+   PASS  ./index.test.js
+     ✓ throws invalid number (3ms)
+     ✓ wait 500 ms (504ms)
+     ✓ test runs (95ms)
+
+   ...
+   ```
+
+## Обновление метаданных действия
+
+Файл [`action.yml`](action.yml) определяет метаданные о вашем действии, такие
+как входные и выходные параметры. Подробнее об этом файле см.
+[Синтаксис метаданных для GitHub Actions](https://docs.github.com/en/actions/creating-actions/metadata-syntax-for-github-actions).
+
+При копировании этого репозитория обновите `action.yml` с именем, описанием,
+входными и выходными параметрами для вашего действия.
+
+## Обновление кода действия
+
+Каталог [`src/`](./src/) является сердцем вашего действия! Он содержит исходный
+код, который будет выполняться при вызове вашего действия. Вы можете заменить
+содержимое этого каталога своим собственным кодом.
+
+При написании кода действия следует помнить о нескольких вещах:
+
+- Большинство операций с инструментарием GitHub Actions и CI/CD обрабатываются
+  асинхронно. В `main.ts` вы увидите, что действие выполняется в `async`
+  функции.
+
+  ```javascript
+  import * as core from '@actions/core'
+  //...
+
+  async function run() {
+    try {
+      //...
+    } catch (error) {
+      core.setFailed(error.message)
+    }
+  }
+  ```
+
+  Для получения дополнительной информации об инструментарии GitHub Actions см.
+  [документацию](https://github.com/actions/toolkit/blob/main/README.md).
+
+Так чего же вы ждете? Приступайте к настройке вашего действия!
+
+1. Создайте новую ветку
+
+   ```bash
+   git checkout -b v1
+   ```
+
+1. Замените содержимое `src/` кодом вашего действия
+1. Добавьте тесты в `__tests__/` для вашего исходного кода
+1. Отформатируйте, протестируйте и соберите действие
+
+   ```bash
+   bun all
+   ```
+
+   > Этот шаг важен! Он запустит [`rollup`](https://rollupjs.org/) для сборки
+   > окончательного JavaScript-кода действия со всеми включенными зависимостями.
+   > Если вы не выполните этот шаг, ваше действие не будет работать корректно
+   > при использовании в рабочем процессе.
+
+1. (Опционально) Протестируйте ваше действие локально
+
+   Утилита [`@github/local-action`](https://github.com/github/local-action)
+   может использоваться для локального тестирования вашего действия. Это простой
+   инструмент командной строки, который "имитирует" (или симулирует)
+   инструментарий GitHub Actions. Таким образом, вы можете запускать ваше
+   TypeScript-действие локально, не публикуя изменения в репозиторий.
+
+   Утилита `local-action` может быть запущена следующими способами:
+   - Отладчик Visual Studio Code
+
+     Убедитесь, что вы просмотрели и, при необходимости, обновили
+     [`.vscode/launch.json`](./.vscode/launch.json)
+
+   - Терминал/Командная строка
+
+     ```bash
+     # npx @github/local action <action-yaml-path> <entrypoint> <dotenv-file>
+     npx @github/local-action . src/main.ts .env
+     ```
+
+   Вы можете предоставить файл `.env` для CLI `local-action` для установки
+   переменных окружения, используемых инструментарием GitHub Actions. Например,
+   установка входных данных и данных полезной нагрузки событий, используемых
+   вашим действием. Для получения дополнительной информации см. пример файла
+   [`.env.example`](./.env.example) и
+   [документацию GitHub Actions](https://docs.github.com/en/actions/learn-github-actions/variables#default-environment-variables).
+
+1. Зафиксируйте ваши изменения
+
+   ```bash
+   git add .
+   git commit -m "My first action is ready!"
+   ```
+
+1. Отправьте их в ваш репозиторий
+
+   ```bash
+   git push -u origin v1
+   ```
+
+1. Создайте pull request и получите обратную связь по вашему действию
+1. Объедините pull request в ветку `main`
+
+Ваше действие опубликовано! :rocket:
+
+Для получения информации о версионировании вашего действия см.
+[Версионирование](https://github.com/actions/toolkit/blob/main/docs/action-versioning.md)
+в инструментарии GitHub Actions.
+
+## Проверка действия
+
+Теперь вы можете проверить действие, ссылаясь на него в файле рабочего процесса.
+Например, [`ci.yml`](./.github/workflows/ci.yml) демонстрирует, как ссылаться на
+действие в том же репозитории.
+
+```yaml
+steps:
+  - name: Checkout
+    id: checkout
+    uses: actions/checkout@v4
+
+  - name: Test Local Action
+    id: test-action
+    uses: ./
+    with:
+      milliseconds: 1000
+
+  - name: Print Output
+    id: output
+    run: echo "${{ steps.test-action.outputs.time }}"
+```
+
+Для примеров выполнения рабочих процессов, посмотрите
+[вкладку Actions](https://github.com/actions/typescript-action/actions)!
+:rocket:
+
+## Публикация нового релиза
+
+Этот проект включает вспомогательный скрипт
+[`script/release`](./script/release), разработанный для упрощения процесса
+тегирования и отправки новых релизов для GitHub Actions.
+
+GitHub Actions позволяет пользователям выбирать определенную версию действия для
+использования на основе тегов релиза. Этот скрипт упрощает этот процесс,
+выполняя следующие шаги:
+
+1. **Получение последнего тега релиза:** Скрипт начинает с получения самого
+   последнего тега релиза SemVer текущей ветки, просматривая локальные данные,
+   доступные в вашем репозитории.
+1. **Запрос нового тега релиза:** Затем пользователю предлагается ввести новый
+   тег релиза. Для помощи скрипт отображает тег, полученный на предыдущем шаге,
+   и проверяет формат введенного тега (vX.X.X). Пользователю также напоминается
+   обновить поле версии в package.json.
+1. **Тегирование нового релиза:** Затем скрипт тегирует новый релиз и
+   синхронизирует отдельный основной тег (например, v1, v2) с новым тегом релиза
+   (например, v1.0.0, v2.1.2). Когда пользователь создает новый основной релиз,
+   скрипт автоматически определяет это и создает ветку `releases/v#` для
+   предыдущей основной версии.
+1. **Отправка изменений в удаленный репозиторий:** Наконец, скрипт отправляет
+   необходимые коммиты, теги и ветки в удаленный репозиторий. Отсюда вам нужно
+   будет создать новый релиз в GitHub, чтобы пользователи могли легко ссылаться
+   на новые теги в своих рабочих процессах.
+
+1. Сохраните и зафиксируйте изменения
+
+После завершения этот рабочий процесс будет запускаться каждый раз при создании
+pull request или при прямой отправке изменений в `main`. Если рабочий процесс
+обнаружит какие-либо зависимости с отсутствующими или несоответствующими
+лицензиями, он завершит рабочий процесс с ошибкой и предоставит подробную
+информацию о найденных проблемах.
