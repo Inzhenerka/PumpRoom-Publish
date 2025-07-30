@@ -2,12 +2,12 @@ import require$$0$1 from 'os';
 import require$$0$2 from 'crypto';
 import * as fs from 'fs';
 import fs__default, { createReadStream } from 'fs';
-import * as require$$1 from 'path';
-import require$$1__default, { basename as basename$1 } from 'path';
+import * as path from 'path';
+import path__default, { basename as basename$1 } from 'path';
 import require$$2 from 'http';
 import require$$3 from 'https';
 import require$$0$5 from 'net';
-import require$$1$1 from 'tls';
+import require$$1 from 'tls';
 import require$$4, { EventEmitter } from 'events';
 import require$$0$4 from 'assert';
 import require$$0$3 from 'util';
@@ -16,20 +16,20 @@ import require$$7 from 'buffer';
 import require$$8 from 'querystring';
 import require$$14 from 'stream/web';
 import require$$0$7 from 'node:stream';
-import require$$1$2 from 'node:util';
+import require$$1$1 from 'node:util';
 import require$$0$6 from 'node:events';
 import require$$0$8 from 'worker_threads';
 import require$$2$1 from 'perf_hooks';
 import require$$5 from 'util/types';
 import require$$4$1 from 'async_hooks';
-import require$$1$3 from 'console';
+import require$$1$2 from 'console';
 import require$$0$9 from 'url';
 import zlib from 'zlib';
 import require$$6 from 'string_decoder';
 import require$$0$a from 'diagnostics_channel';
 import require$$2$2 from 'child_process';
 import require$$6$1 from 'timers';
-import require$$1$4 from 'tty';
+import require$$1$3 from 'tty';
 import { stat } from 'fs/promises';
 
 var commonjsGlobal = typeof globalThis !== 'undefined' ? globalThis : typeof window !== 'undefined' ? window : typeof global !== 'undefined' ? global : typeof self !== 'undefined' ? self : {};
@@ -380,7 +380,7 @@ var hasRequiredTunnel$1;
 function requireTunnel$1 () {
 	if (hasRequiredTunnel$1) return tunnel$1;
 	hasRequiredTunnel$1 = 1;
-	var tls = require$$1$1;
+	var tls = require$$1;
 	var http = require$$2;
 	var https = require$$3;
 	var events = require$$4;
@@ -1762,7 +1762,7 @@ function requireSbmh () {
 	 * by Hongli Lai at: https://github.com/FooBarWidget/boyer-moore-horspool
 	 */
 	const EventEmitter = require$$0$6.EventEmitter;
-	const inherits = require$$1$2.inherits;
+	const inherits = require$$1$1.inherits;
 
 	function SBMH (needle) {
 	  if (typeof needle === 'string') {
@@ -1971,7 +1971,7 @@ function requirePartStream () {
 	if (hasRequiredPartStream) return PartStream_1;
 	hasRequiredPartStream = 1;
 
-	const inherits = require$$1$2.inherits;
+	const inherits = require$$1$1.inherits;
 	const ReadableStream = require$$0$7.Readable;
 
 	function PartStream (opts) {
@@ -2017,7 +2017,7 @@ function requireHeaderParser () {
 	hasRequiredHeaderParser = 1;
 
 	const EventEmitter = require$$0$6.EventEmitter;
-	const inherits = require$$1$2.inherits;
+	const inherits = require$$1$1.inherits;
 	const getLimit = requireGetLimit();
 
 	const StreamSearch = requireSbmh();
@@ -2125,7 +2125,7 @@ function requireDicer () {
 	hasRequiredDicer = 1;
 
 	const WritableStream = require$$0$7.Writable;
-	const inherits = require$$1$2.inherits;
+	const inherits = require$$1$1.inherits;
 
 	const StreamSearch = requireSbmh();
 
@@ -2702,7 +2702,7 @@ function requireMultipart () {
 	//     -- this will require modifications to utils.parseParams
 
 	const { Readable } = require$$0$7;
-	const { inherits } = require$$1$2;
+	const { inherits } = require$$1$1;
 
 	const Dicer = requireDicer();
 
@@ -3268,7 +3268,7 @@ function requireMain () {
 	hasRequiredMain = 1;
 
 	const WritableStream = require$$0$7.Writable;
-	const { inherits } = require$$1$2;
+	const { inherits } = require$$1$1;
 	const Dicer = requireDicer();
 
 	const MultipartParser = requireMultipart();
@@ -8092,7 +8092,7 @@ function requireConnect () {
 	    let socket;
 	    if (protocol === 'https:') {
 	      if (!tls) {
-	        tls = require$$1$1;
+	        tls = require$$1;
 	      }
 	      servername = servername || options.servername || util.getServerName(host) || null;
 
@@ -14116,7 +14116,7 @@ function requirePendingInterceptorsFormatter () {
 	hasRequiredPendingInterceptorsFormatter = 1;
 
 	const { Transform } = stream;
-	const { Console } = require$$1$3;
+	const { Console } = require$$1$2;
 
 	/**
 	 * Gets the output of `console.table(…)` as a string.
@@ -25514,7 +25514,7 @@ function requirePathUtils () {
 	};
 	Object.defineProperty(pathUtils, "__esModule", { value: true });
 	pathUtils.toPlatformPath = pathUtils.toWin32Path = pathUtils.toPosixPath = void 0;
-	const path = __importStar(require$$1__default);
+	const path = __importStar(path__default);
 	/**
 	 * toPosixPath converts the given path to the posix form. On Windows, \\ will be
 	 * replaced with /.
@@ -25601,7 +25601,7 @@ function requireIoUtil () {
 		Object.defineProperty(exports, "__esModule", { value: true });
 		exports.getCmdPath = exports.tryGetExecutablePath = exports.isRooted = exports.isDirectory = exports.exists = exports.READONLY = exports.UV_FS_O_EXLOCK = exports.IS_WINDOWS = exports.unlink = exports.symlink = exports.stat = exports.rmdir = exports.rm = exports.rename = exports.readlink = exports.readdir = exports.open = exports.mkdir = exports.lstat = exports.copyFile = exports.chmod = void 0;
 		const fs = __importStar(fs__default);
-		const path = __importStar(require$$1__default);
+		const path = __importStar(path__default);
 		_a = fs.promises
 		// export const {open} = 'fs'
 		, exports.chmod = _a.chmod, exports.copyFile = _a.copyFile, exports.lstat = _a.lstat, exports.mkdir = _a.mkdir, exports.open = _a.open, exports.readdir = _a.readdir, exports.readlink = _a.readlink, exports.rename = _a.rename, exports.rm = _a.rm, exports.rmdir = _a.rmdir, exports.stat = _a.stat, exports.symlink = _a.symlink, exports.unlink = _a.unlink;
@@ -25791,7 +25791,7 @@ function requireIo () {
 	Object.defineProperty(io, "__esModule", { value: true });
 	io.findInPath = io.which = io.mkdirP = io.rmRF = io.mv = io.cp = void 0;
 	const assert_1 = require$$0$4;
-	const path = __importStar(require$$1__default);
+	const path = __importStar(path__default);
 	const ioUtil = __importStar(requireIoUtil());
 	/**
 	 * Copies a file or folder.
@@ -26099,7 +26099,7 @@ function requireToolrunner () {
 	const os = __importStar(require$$0$1);
 	const events = __importStar(require$$4);
 	const child = __importStar(require$$2$2);
-	const path = __importStar(require$$1__default);
+	const path = __importStar(path__default);
 	const io = __importStar(requireIo());
 	const ioUtil = __importStar(requireIoUtil());
 	const timers_1 = require$$6$1;
@@ -26943,7 +26943,7 @@ function requireCore () {
 		const file_command_1 = requireFileCommand();
 		const utils_1 = requireUtils$2();
 		const os = __importStar(require$$0$1);
-		const path = __importStar(require$$1__default);
+		const path = __importStar(path__default);
 		const oidc_utils_1 = requireOidcUtils();
 		/**
 		 * The code to exit an action
@@ -27489,7 +27489,7 @@ function requireUtils () {
 	if (hasRequiredUtils) return utils$2;
 	hasRequiredUtils = 1;
 	const fsystem = fs__default;
-	const pth = require$$1__default;
+	const pth = path__default;
 	const Constants = requireConstants();
 	const Errors = requireErrors();
 	const isWin = typeof process === "object" && "win32" === process.platform;
@@ -27829,7 +27829,7 @@ var hasRequiredFattr;
 function requireFattr () {
 	if (hasRequiredFattr) return fattr;
 	hasRequiredFattr = 1;
-	const pth = require$$1__default;
+	const pth = path__default;
 
 	fattr = function (/*String*/ path, /*Utils object*/ { fs }) {
 	    var _path = path || "",
@@ -29624,7 +29624,7 @@ function requireAdmZip () {
 	if (hasRequiredAdmZip) return admZip;
 	hasRequiredAdmZip = 1;
 	const Utils = requireUtil();
-	const pth = require$$1__default;
+	const pth = path__default;
 	const ZipEntry = requireZipEntry();
 	const ZipFile = requireZipFile();
 
@@ -42538,7 +42538,7 @@ function requireMimeTypes () {
 		 */
 
 		var db = requireMimeDb();
-		var extname = require$$1__default.extname;
+		var extname = path__default.extname;
 
 		/**
 		 * Module variables.
@@ -44279,7 +44279,7 @@ function requireForm_data () {
 
 	var CombinedStream = requireCombined_stream();
 	var util = require$$0$3;
-	var path = require$$1__default;
+	var path = path__default;
 	var http = require$$2;
 	var https = require$$3;
 	var parseUrl = require$$0$9.parse;
@@ -46909,7 +46909,7 @@ function requireSupportsColor () {
 	if (hasRequiredSupportsColor) return supportsColor_1;
 	hasRequiredSupportsColor = 1;
 	const os = require$$0$1;
-	const tty = require$$1$4;
+	const tty = require$$1$3;
 	const hasFlag = requireHasFlag();
 
 	const {env} = process;
@@ -47055,7 +47055,7 @@ function requireNode () {
 	if (hasRequiredNode) return node.exports;
 	hasRequiredNode = 1;
 	(function (module, exports) {
-		const tty = require$$1$4;
+		const tty = require$$1$3;
 		const util = require$$0$3;
 
 		/**
@@ -51698,6 +51698,120 @@ function formatPumpRoomResponse(response) {
 `;
 }
 /**
+ * Validates that folder names are unique (case-insensitive).
+ *
+ * @param rootDir - The root directory to check
+ * @returns A promise that resolves when validation is complete
+ * @throws Error if duplicate folder names are found
+ */
+async function validateUniqueFolderNames(rootDir) {
+    coreExports.info('🔍 Validating unique folder names...');
+    try {
+        // Get list of folders
+        const items = fs.readdirSync(rootDir);
+        const folders = [];
+        // Filter out only directories
+        for (const item of items) {
+            const itemPath = path.join(rootDir, item);
+            if (fs.statSync(itemPath).isDirectory()) {
+                folders.push(item);
+            }
+        }
+        // Check if there are any folders to analyze
+        if (folders.length === 0) {
+            coreExports.info('ℹ️ No folders found to validate');
+            return;
+        }
+        // Look for duplicates (case-insensitive)
+        const folderMap = new Map();
+        for (const folder of folders) {
+            const lowerCaseFolder = folder.toLowerCase();
+            if (!folderMap.has(lowerCaseFolder)) {
+                folderMap.set(lowerCaseFolder, []);
+            }
+            folderMap.get(lowerCaseFolder)?.push(folder);
+        }
+        // Find duplicates
+        const duplicates = [];
+        for (const [lowerCaseFolder, folderVariants] of folderMap.entries()) {
+            if (folderVariants.length > 1) {
+                duplicates.push(lowerCaseFolder);
+            }
+        }
+        // Report duplicates if found
+        if (duplicates.length > 0) {
+            let errorMessage = '❌ Folder duplicates found:\n';
+            for (const duplicate of duplicates) {
+                const variants = folderMap.get(duplicate);
+                errorMessage += `  • ${duplicate} (variants: ${variants?.join(', ')})\n`;
+            }
+            throw new Error(errorMessage);
+        }
+        coreExports.info('✅ No folder duplicates found');
+    }
+    catch (error) {
+        if (error instanceof Error) {
+            throw error;
+        }
+        else {
+            throw new Error('Unknown error during folder validation');
+        }
+    }
+}
+/**
+ * Validates the .inzhenerka.yml configuration file.
+ *
+ * @param rootDir - The root directory containing the .inzhenerka.yml file
+ * @returns A promise that resolves when validation is complete
+ * @throws Error if the configuration is invalid
+ */
+async function validateInzhenerkaYml(rootDir) {
+    coreExports.info('🔍 Validating .inzhenerka.yml...');
+    const configPath = path.join(rootDir, '.inzhenerka.yml');
+    try {
+        // Check if the file exists
+        if (!fs.existsSync(configPath)) {
+            throw new Error('❌ .inzhenerka.yml file not found');
+        }
+        // Read the file content
+        const configContent = fs.readFileSync(configPath, 'utf8');
+        // Prepare the request body
+        const jsonBody = JSON.stringify({ config_yml: configContent });
+        // Make the API request
+        const response = await axios.post('https://pumproom-api.inzhenerka-cloud.com/inzhenerka_schema', jsonBody, {
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+        // Check the response status
+        if (response.status === 200) {
+            coreExports.info('✅ Configuration is valid');
+        }
+        else {
+            throw new Error(`❌ Configuration is invalid. HTTP status: ${response.status}`);
+        }
+    }
+    catch (error) {
+        if (axios.isAxiosError(error)) {
+            let errorMessage = '❌ Configuration validation failed:\n';
+            if (error.response) {
+                errorMessage += `Status code: ${error.response.status}\n`;
+                errorMessage += `Response: ${JSON.stringify(error.response.data)}\n`;
+            }
+            else {
+                errorMessage += `Error: ${error.message}\n`;
+            }
+            throw new Error(errorMessage);
+        }
+        else if (error instanceof Error) {
+            throw error;
+        }
+        else {
+            throw new Error('Unknown error during configuration validation');
+        }
+    }
+}
+/**
  * The main function for the action.
  *
  * @returns Resolves when the action is complete.
@@ -51718,8 +51832,12 @@ async function run() {
         }
         coreExports.debug(`Root directory: ${rootDir}`);
         coreExports.debug(`Ignore list: ${ignoreList.join(', ')}`);
+        // Validate unique folder names
+        await validateUniqueFolderNames(rootDir);
+        // Validate .inzhenerka.yml configuration
+        await validateInzhenerkaYml(rootDir);
         // Create a temporary file for the ZIP archive
-        const tempZipPath = require$$1.join(process.cwd(), 'repo-archive.zip');
+        const tempZipPath = path.join(process.cwd(), 'repo-archive.zip');
         // Create ZIP archive
         await createZipArchive(rootDir, tempZipPath, ignoreList);
         // Upload the ZIP archive
@@ -51752,9 +51870,9 @@ async function createZipArchive(sourceDir, outputPath, ignoreList) {
     function addFilesToZip(currentPath, relativePath = '') {
         const items = fs.readdirSync(currentPath);
         for (const item of items) {
-            const itemPath = require$$1.join(currentPath, item);
+            const itemPath = path.join(currentPath, item);
             const itemRelativePath = relativePath
-                ? require$$1.join(relativePath, item)
+                ? path.join(relativePath, item)
                 : item;
             // Skip if the item is in the ignore list
             if (ignoreList.some((ignore) => itemPath.includes(ignore))) {
@@ -51769,7 +51887,7 @@ async function createZipArchive(sourceDir, outputPath, ignoreList) {
             else {
                 // Add file to ZIP
                 coreExports.debug(`Adding file: ${itemPath} as ${itemRelativePath}`);
-                zip.addLocalFile(itemPath, require$$1.dirname(itemRelativePath), require$$1.basename(itemRelativePath));
+                zip.addLocalFile(itemPath, path.dirname(itemRelativePath), path.basename(itemRelativePath));
             }
         }
     }

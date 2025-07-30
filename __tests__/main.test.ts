@@ -140,12 +140,8 @@ describe('main.ts', () => {
     expect(core.info).toHaveBeenCalledWith(
       '🔍 Validating unique folder names...'
     )
-    expect(core.info).toHaveBeenCalledWith(
-      '✅ No folder duplicates found'
-    )
-    expect(core.info).toHaveBeenCalledWith(
-      '🔍 Validating .inzhenerka.yml...'
-    )
+    expect(core.info).toHaveBeenCalledWith('✅ No folder duplicates found')
+    expect(core.info).toHaveBeenCalledWith('🔍 Validating .inzhenerka.yml...')
 
     // Since we're mocking the API response and not actually calling the real API,
     // we can't directly test the formatted output in this test.
