@@ -133,7 +133,7 @@ async function uploadArchive(
     const formData = new FormData()
     formData.append('repo_name', repoName)
     formData.append('realm', realm)
-    formData.append('source', 'github')
+    formData.append('source', 'zip')
 
     // Add the ZIP file
     const file = await fileFromPath(zipPath)

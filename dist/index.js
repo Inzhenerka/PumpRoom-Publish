@@ -51769,7 +51769,7 @@ async function uploadArchive(zipPath, realm, repoName, apiKey) {
         const formData = new FormData$1();
         formData.append('repo_name', repoName);
         formData.append('realm', realm);
-        formData.append('source', 'github');
+        formData.append('source', 'zip');
         // Add the ZIP file
         const file = await fileFromPath(zipPath);
         formData.append('archive', file);
