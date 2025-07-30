@@ -7,6 +7,46 @@ import { FormData } from 'formdata-node'
 import { fileFromPath } from 'formdata-node/file-from-path'
 
 /**
+ * Interface for the PumpRoom API response
+ */
+export interface PumpRoomApiResponse {
+  repo_updated: boolean
+  pushed_at: string
+  tasks_current: number
+  tasks_updated: number
+  tasks_created: number
+  tasks_deleted: number
+  tasks_cached: number
+  tasks_synchronized_with_cms: number
+}
+
+/**
+ * Formats the PumpRoom API response for better readability in console output
+ *
+ * @param response - The API response to format
+ * @returns A formatted string representation of the response
+ */
+export function formatPumpRoomResponse(response: PumpRoomApiResponse): string {
+  const date = new Date(response.pushed_at)
+  const formattedDate = date.toLocaleString()
+  return `
+📊 PumpRoom Repository Update Summary:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+✅ Repository Updated: ${response.repo_updated ? 'Yes' : 'No'}
+🕒 Pushed At: ${formattedDate}
+
+📋 Tasks Summary:
+  • Current: ${response.tasks_current}
+  • Updated: ${response.tasks_updated}
+  • Created: ${response.tasks_created}
+  • Deleted: ${response.tasks_deleted}
+  • Cached: ${response.tasks_cached}
+  • Synchronized with CMS: ${response.tasks_synchronized_with_cms}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+`
+}
+
+/**
  * The main function for the action.
  *
  * @returns Resolves when the action is complete.
@@ -152,11 +192,12 @@ async function uploadArchive(
     )
 
     core.info(`Response status: ${response.status}`)
-    core.info(`Response: ${JSON.stringify(response.data)}`)
-
     if (response.status !== 200) {
       throw new Error(`Unable to register repo, code: ${response.status}`)
     } else {
+      // Type the response data and format it for display
+      const responseData = response.data as PumpRoomApiResponse
+      core.info(formatPumpRoomResponse(responseData))
       core.info('✅ Repo and tasks successfully registered')
     }
   } catch (error) {

@@ -51673,6 +51673,31 @@ async function fileFromPath(path, filenameOrOptions, options) {
 /*! Based on fetch-blob. MIT License. Jimmy Wärting <https://jimmy.warting.se/opensource> & David Frank */
 
 /**
+ * Formats the PumpRoom API response for better readability in console output
+ *
+ * @param response - The API response to format
+ * @returns A formatted string representation of the response
+ */
+function formatPumpRoomResponse(response) {
+    const date = new Date(response.pushed_at);
+    const formattedDate = date.toLocaleString();
+    return `
+📊 PumpRoom Repository Update Summary:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+✅ Repository Updated: ${response.repo_updated ? 'Yes' : 'No'}
+🕒 Pushed At: ${formattedDate}
+
+📋 Tasks Summary:
+  • Current: ${response.tasks_current}
+  • Updated: ${response.tasks_updated}
+  • Created: ${response.tasks_created}
+  • Deleted: ${response.tasks_deleted}
+  • Cached: ${response.tasks_cached}
+  • Synchronized with CMS: ${response.tasks_synchronized_with_cms}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+`;
+}
+/**
  * The main function for the action.
  *
  * @returns Resolves when the action is complete.
@@ -51781,11 +51806,13 @@ async function uploadArchive(zipPath, realm, repoName, apiKey) {
             }
         });
         coreExports.info(`Response status: ${response.status}`);
-        coreExports.info(`Response: ${JSON.stringify(response.data)}`);
         if (response.status !== 200) {
             throw new Error(`Unable to register repo, code: ${response.status}`);
         }
         else {
+            // Type the response data and format it for display
+            const responseData = response.data;
+            coreExports.info(formatPumpRoomResponse(responseData));
             coreExports.info('✅ Repo and tasks successfully registered');
         }
     }

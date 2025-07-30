@@ -26,7 +26,7 @@ jest.unstable_mockModule('formdata-node/file-from-path', () => ({
 
 // The module being tested should be imported dynamically. This ensures that the
 // mocks are used in place of any actual dependencies.
-const { run } = await import('../src/main.ts')
+const { run, formatPumpRoomResponse } = await import('../src/main.ts')
 
 describe('main.ts', () => {
   const mockRootDir = '/mock/root/dir'
@@ -67,10 +67,19 @@ describe('main.ts', () => {
       }
     })
 
-    // Set up axios mock
+    // Set up axios mock with the expected response format
     axios.post.mockResolvedValue({
       status: 200,
-      data: { success: true }
+      data: {
+        repo_updated: true,
+        pushed_at: '2025-07-30T21:26:10.875969',
+        tasks_current: 33,
+        tasks_updated: 33,
+        tasks_created: 0,
+        tasks_deleted: 1,
+        tasks_cached: 33,
+        tasks_synchronized_with_cms: 2
+      }
     })
 
     // Set up FormData mock
@@ -93,6 +102,38 @@ describe('main.ts', () => {
 
     // Verify success message was logged
     expect(core.info).toHaveBeenCalled()
+
+    // Since we're mocking the API response and not actually calling the real API,
+    // we can't directly test the formatted output in this test.
+    // The formatting functionality is tested separately in the "Formats the API response correctly" test.
+  })
+
+  it('Formats the API response correctly', () => {
+    // Create a sample response object
+    const sampleResponse = {
+      repo_updated: true,
+      pushed_at: '2025-07-30T21:26:10.875969',
+      tasks_current: 33,
+      tasks_updated: 33,
+      tasks_created: 0,
+      tasks_deleted: 1,
+      tasks_cached: 33,
+      tasks_synchronized_with_cms: 2
+    }
+
+    // Format the response
+    const formattedResponse = formatPumpRoomResponse(sampleResponse)
+
+    // Verify the formatted response contains the expected information
+    expect(formattedResponse).toContain('PumpRoom Repository Update Summary')
+    expect(formattedResponse).toContain('Repository Updated: Yes')
+    expect(formattedResponse).toContain('Tasks Summary')
+    expect(formattedResponse).toContain('Current: 33')
+    expect(formattedResponse).toContain('Updated: 33')
+    expect(formattedResponse).toContain('Created: 0')
+    expect(formattedResponse).toContain('Deleted: 1')
+    expect(formattedResponse).toContain('Cached: 33')
+    expect(formattedResponse).toContain('Synchronized with CMS: 2')
   })
 
   it('Handles API error correctly', async () => {
