@@ -47,6 +47,136 @@ export function formatPumpRoomResponse(response: PumpRoomApiResponse): string {
 }
 
 /**
+ * Validates that folder names are unique (case-insensitive).
+ *
+ * @param rootDir - The root directory to check
+ * @returns A promise that resolves when validation is complete
+ * @throws Error if duplicate folder names are found
+ */
+export async function validateUniqueFolderNames(
+  rootDir: string
+): Promise<void> {
+  core.info('🔍 Validating unique folder names...')
+
+  try {
+    // Get list of folders
+    const items = fs.readdirSync(rootDir)
+    const folders: string[] = []
+
+    // Filter out only directories
+    for (const item of items) {
+      const itemPath = path.join(rootDir, item)
+      if (fs.statSync(itemPath).isDirectory()) {
+        folders.push(item)
+      }
+    }
+
+    // Check if there are any folders to analyze
+    if (folders.length === 0) {
+      core.info('ℹ️ No folders found to validate')
+      return
+    }
+
+    // Look for duplicates (case-insensitive)
+    const folderMap = new Map<string, string[]>()
+    for (const folder of folders) {
+      const lowerCaseFolder = folder.toLowerCase()
+      if (!folderMap.has(lowerCaseFolder)) {
+        folderMap.set(lowerCaseFolder, [])
+      }
+      folderMap.get(lowerCaseFolder)?.push(folder)
+    }
+
+    // Find duplicates
+    const duplicates: string[] = []
+    for (const [lowerCaseFolder, folderVariants] of folderMap.entries()) {
+      if (folderVariants.length > 1) {
+        duplicates.push(lowerCaseFolder)
+      }
+    }
+
+    // Report duplicates if found
+    if (duplicates.length > 0) {
+      let errorMessage = '❌ Folder duplicates found:\n'
+      for (const duplicate of duplicates) {
+        const variants = folderMap.get(duplicate)
+        errorMessage += `  • ${duplicate} (variants: ${variants?.join(', ')})\n`
+      }
+      throw new Error(errorMessage)
+    }
+
+    core.info('✅ No folder duplicates found')
+  } catch (error) {
+    if (error instanceof Error) {
+      throw error
+    } else {
+      throw new Error('Unknown error during folder validation')
+    }
+  }
+}
+
+/**
+ * Validates the .inzhenerka.yml configuration file.
+ *
+ * @param rootDir - The root directory containing the .inzhenerka.yml file
+ * @returns A promise that resolves when validation is complete
+ * @throws Error if the configuration is invalid
+ */
+export async function validateInzhenerkaYml(rootDir: string): Promise<void> {
+  core.info('🔍 Validating .inzhenerka.yml...')
+
+  const configPath = path.join(rootDir, '.inzhenerka.yml')
+
+  try {
+    // Check if the file exists
+    if (!fs.existsSync(configPath)) {
+      throw new Error('❌ .inzhenerka.yml file not found')
+    }
+
+    // Read the file content
+    const configContent = fs.readFileSync(configPath, 'utf8')
+
+    // Prepare the request body
+    const jsonBody = JSON.stringify({ config_yml: configContent })
+
+    // Make the API request
+    const response = await axios.post(
+      'https://pumproom-api.inzhenerka-cloud.com/inzhenerka_schema',
+      jsonBody,
+      {
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      }
+    )
+
+    // Check the response status
+    if (response.status === 200) {
+      core.info('✅ Configuration is valid')
+    } else {
+      throw new Error(
+        `❌ Configuration is invalid. HTTP status: ${response.status}`
+      )
+    }
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      let errorMessage = '❌ Configuration validation failed:\n'
+      if (error.response) {
+        errorMessage += `Status code: ${error.response.status}\n`
+        errorMessage += `Response: ${JSON.stringify(error.response.data)}\n`
+      } else {
+        errorMessage += `Error: ${error.message}\n`
+      }
+      throw new Error(errorMessage)
+    } else if (error instanceof Error) {
+      throw error
+    } else {
+      throw new Error('Unknown error during configuration validation')
+    }
+  }
+}
+
+/**
  * The main function for the action.
  *
  * @returns Resolves when the action is complete.
@@ -70,6 +200,12 @@ export async function run(): Promise<void> {
 
     core.debug(`Root directory: ${rootDir}`)
     core.debug(`Ignore list: ${ignoreList.join(', ')}`)
+
+    // Validate unique folder names
+    await validateUniqueFolderNames(rootDir)
+
+    // Validate .inzhenerka.yml configuration
+    await validateInzhenerkaYml(rootDir)
 
     // Create a temporary file for the ZIP archive
     const tempZipPath = path.join(process.cwd(), 'repo-archive.zip')

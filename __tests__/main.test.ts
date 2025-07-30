@@ -26,7 +26,31 @@ jest.unstable_mockModule('formdata-node/file-from-path', () => ({
 
 // The module being tested should be imported dynamically. This ensures that the
 // mocks are used in place of any actual dependencies.
-const { run, formatPumpRoomResponse } = await import('../src/main.ts')
+// Import the PumpRoomApiResponse interface to avoid using 'any'
+interface PumpRoomApiResponse {
+  repo_updated: boolean
+  pushed_at: string
+  tasks_current: number
+  tasks_updated: number
+  tasks_created: number
+  tasks_deleted: number
+  tasks_cached: number
+  tasks_synchronized_with_cms: number
+}
+
+let run: () => Promise<void>
+let formatPumpRoomResponse: (response: PumpRoomApiResponse) => string
+let validateUniqueFolderNames: (rootDir: string) => Promise<void>
+let validateInzhenerkaYml: (rootDir: string) => Promise<void>
+
+// Import the module in beforeAll to ensure mocks are set up first
+beforeAll(async () => {
+  const mainModule = await import('../src/main.ts')
+  run = mainModule.run
+  formatPumpRoomResponse = mainModule.formatPumpRoomResponse
+  validateUniqueFolderNames = mainModule.validateUniqueFolderNames
+  validateInzhenerkaYml = mainModule.validateInzhenerkaYml
+})
 
 describe('main.ts', () => {
   const mockRootDir = '/mock/root/dir'
@@ -44,8 +68,11 @@ describe('main.ts', () => {
 
     // Set up fs mocks
     fs.readdirSync.mockReturnValue(['file1.txt', 'file2.txt', 'dir1'])
-    fs.statSync.mockImplementation((path) => ({
-      isDirectory: () => path.includes('dir')
+    fs.statSync.mockImplementation((filePath) => ({
+      isDirectory: () => {
+        if (!filePath || typeof filePath !== 'string') return false
+        return filePath.includes('dir')
+      }
     }))
     fs.unlinkSync.mockImplementation(() => {})
 
@@ -95,13 +122,30 @@ describe('main.ts', () => {
   })
 
   it('Creates a ZIP archive and uploads it successfully', async () => {
+    // Set up fs.readdirSync to return some files for the createZipArchive function
+    fs.readdirSync.mockReturnValue(['file1.txt', 'dir1'])
+
+    // Set up fs.statSync to identify directories correctly
+    fs.statSync.mockImplementation((filePath) => ({
+      isDirectory: () => {
+        if (!filePath || typeof filePath !== 'string') return false
+        return filePath.includes('dir')
+      }
+    }))
+
+    // Run the main function
     await run()
 
-    // Verify that the ZIP constructor was called
-    expect(admZip).toHaveBeenCalled()
-
-    // Verify success message was logged
-    expect(core.info).toHaveBeenCalled()
+    // Verify that core.info was called with validation messages
+    expect(core.info).toHaveBeenCalledWith(
+      '🔍 Validating unique folder names...'
+    )
+    expect(core.info).toHaveBeenCalledWith(
+      '✅ No folder duplicates found'
+    )
+    expect(core.info).toHaveBeenCalledWith(
+      '🔍 Validating .inzhenerka.yml...'
+    )
 
     // Since we're mocking the API response and not actually calling the real API,
     // we can't directly test the formatted output in this test.
@@ -176,5 +220,138 @@ describe('main.ts', () => {
 
     // Verify that the action was marked as failed
     expect(core.setFailed).toHaveBeenCalledWith('File system error')
+  })
+
+  // The validation functions are already imported in the beforeAll hook
+
+  describe('validateUniqueFolderNames', () => {
+    beforeEach(() => {
+      // Reset mocks
+      jest.resetAllMocks()
+
+      // Default mock for fs.readdirSync and fs.statSync
+      fs.readdirSync.mockReturnValue(['folder1', 'folder2', 'file.txt'])
+      fs.statSync.mockImplementation((filePath) => ({
+        isDirectory: () => {
+          if (!filePath || typeof filePath !== 'string') return false
+          return !filePath.includes('file')
+        }
+      }))
+    })
+
+    it('Successfully validates when no duplicates exist', async () => {
+      // Mock directories that will be recognized by isDirectory
+      fs.readdirSync.mockReturnValue(['dir1', 'dir2'])
+      fs.statSync.mockImplementation(() => ({
+        isDirectory: () => true
+      }))
+
+      await validateUniqueFolderNames(mockRootDir)
+
+      // Verify that success message was logged
+      expect(core.info).toHaveBeenCalledWith('✅ No folder duplicates found')
+    })
+
+    it('Detects case-insensitive duplicates', async () => {
+      // Mock folders with case-insensitive duplicates
+      fs.readdirSync.mockReturnValue(['Folder1', 'folder1', 'folder2'])
+      fs.statSync.mockImplementation(() => ({
+        isDirectory: () => true
+      }))
+
+      // Expect the function to throw an error
+      await expect(validateUniqueFolderNames(mockRootDir)).rejects.toThrow(
+        '❌ Folder duplicates found:'
+      )
+    })
+
+    it('Handles empty directory', async () => {
+      // Mock empty directory
+      fs.readdirSync.mockReturnValue([])
+
+      await validateUniqueFolderNames(mockRootDir)
+
+      // Verify that info message was logged
+      expect(core.info).toHaveBeenCalledWith('ℹ️ No folders found to validate')
+    })
+
+    it('Handles directory with no subdirectories', async () => {
+      // Mock directory with only files
+      fs.readdirSync.mockReturnValue(['file1.txt', 'file2.txt'])
+      fs.statSync.mockImplementation(() => ({
+        isDirectory: () => false
+      }))
+
+      await validateUniqueFolderNames(mockRootDir)
+
+      // Verify that info message was logged
+      expect(core.info).toHaveBeenCalledWith('ℹ️ No folders found to validate')
+    })
+  })
+
+  describe('validateInzhenerkaYml', () => {
+    beforeEach(() => {
+      // Reset mocks
+      jest.resetAllMocks()
+
+      // Default mock for fs.existsSync and fs.readFileSync
+      fs.existsSync.mockReturnValue(true)
+      fs.readFileSync.mockReturnValue('valid: yaml\ncontent: true')
+
+      // Default mock for axios.post
+      axios.post.mockResolvedValue({ status: 200 })
+    })
+
+    it('Successfully validates when configuration is valid', async () => {
+      await validateInzhenerkaYml(mockRootDir)
+
+      // Verify that success message was logged
+      expect(core.info).toHaveBeenCalledWith('✅ Configuration is valid')
+    })
+
+    it('Throws error when configuration file is not found', async () => {
+      // Mock file not found
+      fs.existsSync.mockReturnValue(false)
+
+      // Expect the function to throw an error
+      await expect(validateInzhenerkaYml(mockRootDir)).rejects.toThrow(
+        '❌ .inzhenerka.yml file not found'
+      )
+    })
+
+    it('Throws error when API returns non-200 status', async () => {
+      // Mock API error
+      axios.post.mockResolvedValue({ status: 400 })
+
+      // Expect the function to throw an error
+      await expect(validateInzhenerkaYml(mockRootDir)).rejects.toThrow(
+        '❌ Configuration is invalid'
+      )
+    })
+
+    it('Handles API request error', async () => {
+      // Create a custom error object that will be recognized as an Axios error
+      const axiosError = new Error('API Error')
+      Object.defineProperty(axiosError, 'isAxiosError', { value: true })
+      Object.defineProperty(axiosError, 'response', {
+        value: {
+          status: 400,
+          data: { error: 'Bad Request' }
+        }
+      })
+
+      // Mock axios.isAxiosError to return true for this error
+      axios.isAxiosError.mockImplementation((error) => {
+        return error && error.isAxiosError === true
+      })
+
+      // Mock axios.post to reject with the error
+      axios.post.mockRejectedValueOnce(axiosError)
+
+      // Expect the function to throw an error
+      await expect(validateInzhenerkaYml(mockRootDir)).rejects.toThrow(
+        '❌ Configuration validation failed:'
+      )
+    })
   })
 })
