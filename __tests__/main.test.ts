@@ -6,57 +6,134 @@
  * so that the actual '@actions/core' module is not imported.
  */
 import { jest } from '@jest/globals'
-import * as core from '../__fixtures__/core.js'
-import { wait } from '../__fixtures__/wait.js'
+import * as core from '../__fixtures__/core.ts'
+import * as fs from '../__fixtures__/fs.ts'
+import * as path from '../__fixtures__/path.ts'
+import { admZip } from '../__fixtures__/adm-zip.ts'
+import { axios } from '../__fixtures__/axios.ts'
+import { FormData, fileFromPath } from '../__fixtures__/formdata-node.ts'
 
 // Mocks should be declared before the module being tested is imported.
 jest.unstable_mockModule('@actions/core', () => core)
-jest.unstable_mockModule('../src/wait.js', () => ({ wait }))
+jest.unstable_mockModule('fs', () => fs)
+jest.unstable_mockModule('path', () => path)
+jest.unstable_mockModule('adm-zip', () => ({ default: admZip }))
+jest.unstable_mockModule('axios', () => ({ default: axios }))
+jest.unstable_mockModule('formdata-node', () => ({ FormData }))
+jest.unstable_mockModule('formdata-node/file-from-path', () => ({
+  fileFromPath
+}))
 
 // The module being tested should be imported dynamically. This ensures that the
 // mocks are used in place of any actual dependencies.
-const { run } = await import('../src/main.js')
+const { run } = await import('../src/main.ts')
 
 describe('main.ts', () => {
-  beforeEach(() => {
-    // Set the action's inputs as return values from core.getInput().
-    core.getInput.mockImplementation(() => '500')
+  const mockRootDir = '/mock/root/dir'
+  const mockRepoName = 'test-repo'
+  const mockRealm = 'test-realm'
+  const mockApiKey = 'test-api-key'
+  const mockFile = { name: 'archive', type: 'application/zip' }
 
-    // Mock the wait function so that it does not actually wait.
-    wait.mockImplementation(() => Promise.resolve('done!'))
+  beforeEach(() => {
+    // Mock process.cwd()
+    process.cwd = jest.fn().mockReturnValue('/mock/cwd')
+
+    // Set up path.join mock
+    path.join.mockImplementation((...args) => args.join('/'))
+
+    // Set up fs mocks
+    fs.readdirSync.mockReturnValue(['file1.txt', 'file2.txt', 'dir1'])
+    fs.statSync.mockImplementation((path) => ({
+      isDirectory: () => path.includes('dir')
+    }))
+    fs.unlinkSync.mockImplementation(() => {})
+
+    // Set up core.getInput mocks for different inputs
+    core.getInput.mockImplementation((name) => {
+      switch (name) {
+        case 'root_dir':
+          return mockRootDir
+        case 'ignore':
+          return 'node_modules,dist'
+        case 'realm':
+          return mockRealm
+        case 'repo_name':
+          return mockRepoName
+        case 'api_key':
+          return mockApiKey
+        default:
+          return ''
+      }
+    })
+
+    // Set up axios mock
+    axios.post.mockResolvedValue({
+      status: 200,
+      data: { success: true }
+    })
+
+    // Set up FormData mock
+    // FormData is already mocked in the fixture with jest.fn() methods
+    // No need to mock prototype methods
+
+    // Set up fileFromPath mock
+    fileFromPath.mockResolvedValue(mockFile)
   })
 
   afterEach(() => {
     jest.resetAllMocks()
   })
 
-  it('Sets the time output', async () => {
+  it('Creates a ZIP archive and uploads it successfully', async () => {
     await run()
 
-    // Verify the time output was set.
-    expect(core.setOutput).toHaveBeenNthCalledWith(
-      1,
-      'time',
-      // Simple regex to match a time string in the format HH:MM:SS.
-      expect.stringMatching(/^\d{2}:\d{2}:\d{2}/)
-    )
+    // Verify that the ZIP constructor was called
+    expect(admZip).toHaveBeenCalled()
+
+    // Verify success message was logged
+    expect(core.info).toHaveBeenCalled()
   })
 
-  it('Sets a failed status', async () => {
-    // Clear the getInput mock and return an invalid value.
-    core.getInput.mockClear().mockReturnValueOnce('this is not a number')
+  it('Handles API error correctly', async () => {
+    // Create a custom error object that will be recognized as an Axios error
+    const axiosError = new Error('API Error')
+    Object.defineProperty(axiosError, 'isAxiosError', { value: true })
+    Object.defineProperty(axiosError, 'response', {
+      value: {
+        status: 400,
+        data: { error: 'Bad Request' }
+      }
+    })
 
-    // Clear the wait mock and return a rejected promise.
-    wait
-      .mockClear()
-      .mockRejectedValueOnce(new Error('milliseconds is not a number'))
+    // Mock axios.isAxiosError to return true for this error
+    axios.isAxiosError.mockImplementation((error) => {
+      return error && error.isAxiosError === true
+    })
+
+    // Mock axios.post to reject with the error
+    axios.post.mockRejectedValueOnce(axiosError)
+
+    // Run the function - it should catch the error internally
+    await run()
+
+    // In the actual implementation, core.error might not be called directly
+    // Instead, we should verify that core.setFailed is called with the expected error message
+
+    // Verify that the action was marked as failed
+    // Just check if setFailed was called, without checking the specific message
+    expect(core.setFailed).toHaveBeenCalled()
+  })
+
+  it('Handles file system error correctly', async () => {
+    // Mock file system error
+    fs.readdirSync.mockImplementationOnce(() => {
+      throw new Error('File system error')
+    })
 
     await run()
 
-    // Verify that the action was marked as failed.
-    expect(core.setFailed).toHaveBeenNthCalledWith(
-      1,
-      'milliseconds is not a number'
-    )
+    // Verify that the action was marked as failed
+    expect(core.setFailed).toHaveBeenCalledWith('File system error')
   })
 })

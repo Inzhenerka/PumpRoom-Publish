@@ -1,23 +1,31 @@
-name: The name of your action here
-description: Provide a description here
-author: Your name or organization here
+name: PumpRoom Publish
+description: GitHub Action to upload tasks to PumpRoom LMS
+author: Inzhenerka.Tech
 
 # Add your action's branding here. This will appear on the GitHub Marketplace.
 branding:
-  icon: heart
-  color: red
+  icon: upload-cloud
+  color: purple
 
 # Define your inputs here.
 inputs:
-  milliseconds:
-    description: Your input description here
+  root_dir:
+    description: 'Directory to be archived and uploaded'
+    required: false
+    default: ''
+  ignore:
+    description: 'Files and directories to ignore (comma-separated)'
+    required: false
+    default: ''
+  realm:
+    description: 'Realm identifier for the repository'
     required: true
-    default: '1000'
-
-# Define your outputs here.
-outputs:
-  time:
-    description: Your output description here
+  repo_name:
+    description: 'Repository name'
+    required: true
+  api_key:
+    description: 'API key for authentication'
+    required: true
 
 runs:
   using: node20
