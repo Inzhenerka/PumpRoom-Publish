@@ -116,25 +116,30 @@ async function main() {
       process.exit(1)
     }
 
-    // Step 4: Execute npm version, create tag and push main
+    // Step 4: Commit version change, create tag and push main
     try {
-      exec(`npm version ${versionType} --no-git-tag-version`)
-
-      // Get the new version from package.json
+      // Get current version before update
       const packageJsonPath = path.join(process.cwd(), 'package.json')
       const packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf8'))
-      const newVersion = packageJson.version
+      const currentVersion = packageJson.version
+
+      // Update version in package.json without creating git tag
+      exec(`npm version ${versionType} --no-git-tag-version`)
+
+      // Read the new version
+      const updatedPackageJson = JSON.parse(readFileSync(packageJsonPath, 'utf8'))
+      const newVersion = updatedPackageJson.version
 
       // Commit the version change
       exec('git add package.json')
-      exec(`git commit -m "chore: bump version to ${newVersion}"`)
+      exec(`git commit -m "chore: bump version from ${currentVersion} to ${newVersion}"`)
 
-      // Create tag
+      // Create tag after commit
       exec(`git tag v${newVersion} -m "v${newVersion} Release"`)
 
       // Push main with tags
       exec('git push origin main --follow-tags')
-      console.log(`✓ Version ${newVersion} created and pushed to main`)
+      console.log(`✓ Version updated from ${currentVersion} to ${newVersion}, committed and pushed to main`)
     } catch (error) {
       console.error('Error updating version and pushing main:', error.message)
       process.exit(1)
