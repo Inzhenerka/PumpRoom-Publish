@@ -16,8 +16,13 @@
  *   node scripts/publish.js <minor|patch>
  */
 
-const { execSync } = require('child_process')
-const path = require('path')
+import { execSync } from 'child_process'
+import path from 'path'
+import { readFileSync } from 'fs'
+import { fileURLToPath } from 'url'
+
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
 
 // Helper function to execute shell commands and print output
 function exec(command, options = {}) {
@@ -110,7 +115,8 @@ async function main() {
       exec(`npm version ${versionType} --no-git-tag-version`)
 
       // Get the new version from package.json
-      const packageJson = require(path.join(process.cwd(), 'package.json'))
+      const packageJsonPath = path.join(process.cwd(), 'package.json')
+      const packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf8'))
       const newVersion = packageJson.version
 
       // Commit the version change

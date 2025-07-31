@@ -110,10 +110,10 @@ bun run test
 
 ```bash
 # Для выпуска новой минорной версии (1.0.0 -> 1.1.0)
-bun run publish:minor
+bun publish:minor
 
 # Для выпуска новой патч-версии (1.0.0 -> 1.0.1)
-bun run publish:patch
+bun publish:patch
 ```
 
 Скрипт публикации выполнит следующие действия:
