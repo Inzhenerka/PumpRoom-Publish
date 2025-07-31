@@ -56,9 +56,13 @@ async function main() {
 
     // Step 0: Check that current branch is main (REQUIRED)
     try {
-      const currentBranch = execSync('git branch --show-current').toString().trim()
+      const currentBranch = execSync('git branch --show-current')
+        .toString()
+        .trim()
       if (currentBranch !== 'main') {
-        console.error(`Error: Current branch is '${currentBranch}', but 'main' is required for publishing.`)
+        console.error(
+          `Error: Current branch is '${currentBranch}', but 'main' is required for publishing.`
+        )
         console.error('Please switch to main branch before publishing.')
         process.exit(1)
       }
@@ -149,7 +153,7 @@ async function main() {
 
       // Switch to v1 branch
       exec('git checkout v1')
-      
+
       // Pull latest changes from remote v1
       exec('git pull origin v1')
 
@@ -161,7 +165,7 @@ async function main() {
 
       // Switch back to main
       exec('git checkout main')
-      
+
       console.log('✓ Main merged into v1 release branch')
     } catch (error) {
       console.error('Error merging into v1 and pushing:', error.message)
