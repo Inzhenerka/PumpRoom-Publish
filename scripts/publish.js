@@ -4,13 +4,13 @@
  * Platform-independent scripts for publishing the GitHub Action
  *
  * This scripts performs the following steps:
- * 1. Checks for uncommitted changes and throws an error if any exist
- * 2. Accepts "minor" or "patch" commands for versioning
- * 3. Switches to branch v1
+ * 1. Checks that current branch is main (required)
+ * 2. Checks for uncommitted changes and throws an error if any exist
+ * 3. Accepts "minor" or "patch" commands for versioning
  * 4. Builds using "bun all"
- * 5. Commits the result
- * 6. Executes npm version and pushes
- * 7. Merges the branch into main and pushes
+ * 5. Commits the result in main
+ * 6. Executes npm version, creates tag and pushes main
+ * 7. Merges main into v1 release branch and pushes
  *
  * Usage:
  *   node scripts/publish.js <minor|patch>
@@ -54,7 +54,21 @@ async function main() {
       process.exit(1)
     }
 
-    // Step 0: Check for uncommitted changes
+    // Step 0: Check that current branch is main (REQUIRED)
+    try {
+      const currentBranch = execSync('git branch --show-current').toString().trim()
+      if (currentBranch !== 'main') {
+        console.error(`Error: Current branch is '${currentBranch}', but 'main' is required for publishing.`)
+        console.error('Please switch to main branch before publishing.')
+        process.exit(1)
+      }
+      console.log('✓ Current branch is main')
+    } catch (error) {
+      console.error('Error checking current branch:', error.message)
+      process.exit(1)
+    }
+
+    // Step 1: Check for uncommitted changes
     try {
       const status = execSync('git status --porcelain').toString().trim()
       if (status) {
@@ -62,28 +76,15 @@ async function main() {
         console.error('Please commit or stash your changes before publishing.')
         process.exit(1)
       }
+      console.log('✓ No uncommitted changes')
     } catch (error) {
       console.error('Error checking git status:', error.message)
       process.exit(1)
     }
 
-    // Step 1: Switch to branch v1
-    try {
-      // Check if branch exists
-      const branches = execSync('git branch').toString()
-      if (branches.includes('v1')) {
-        exec('git checkout v1')
-      } else {
-        console.log('Branch v1 does not exist. Creating it...')
-        exec('git checkout -b v1')
-      }
-    } catch (error) {
-      console.error('Error switching to branch v1:', error.message)
-      process.exit(1)
-    }
-
     // Step 2: Build using bun all
     try {
+      console.log('Building the project...')
       if (commandExists('bun')) {
         exec('bun all')
       } else {
@@ -95,22 +96,23 @@ async function main() {
       process.exit(1)
     }
 
-    // Step 3: Commit the result
+    // Step 3: Commit the result in main
     try {
       // Check if there are changes to commit after build
       const status = execSync('git status --porcelain').toString().trim()
       if (status) {
         exec('git add .')
         exec('git commit -m "build: update distribution files"')
+        console.log('✓ Build changes committed')
       } else {
-        console.log('No changes to commit after build')
+        console.log('✓ No changes to commit after build')
       }
     } catch (error) {
       console.error('Error committing changes:', error.message)
       process.exit(1)
     }
 
-    // Step 4: Execute npm version and push
+    // Step 4: Execute npm version, create tag and push main
     try {
       exec(`npm version ${versionType} --no-git-tag-version`)
 
@@ -126,32 +128,48 @@ async function main() {
       // Create tag
       exec(`git tag v${newVersion} -m "v${newVersion} Release"`)
 
-      // Push branch and tags
-      exec('git push origin v1 --follow-tags')
+      // Push main with tags
+      exec('git push origin main --follow-tags')
+      console.log(`✓ Version ${newVersion} created and pushed to main`)
     } catch (error) {
-      console.error('Error updating version and pushing:', error.message)
+      console.error('Error updating version and pushing main:', error.message)
       process.exit(1)
     }
 
-    // Step 5: Merge the branch into main and push
+    // Step 5: Merge main into v1 release branch and push
     try {
-      // Switch to main branch
-      exec('git checkout main')
+      // Check if v1 branch exists, create if not
+      const branches = execSync('git branch -r').toString()
+      if (!branches.includes('origin/v1')) {
+        console.log('Remote v1 branch does not exist. Creating it...')
+        exec('git checkout -b v1')
+        exec('git push origin v1')
+        exec('git checkout main')
+      }
 
-      // Merge v1 into main
-      exec('git merge v1 --no-ff -m "Merge branch v1 into main"')
-
-      // Push main
-      exec('git push origin main')
-
-      // Switch back to v1
+      // Switch to v1 branch
       exec('git checkout v1')
+      
+      // Pull latest changes from remote v1
+      exec('git pull origin v1')
+
+      // Merge main into v1
+      exec('git merge main --no-ff -m "Merge main into v1 release branch"')
+
+      // Push v1
+      exec('git push origin v1')
+
+      // Switch back to main
+      exec('git checkout main')
+      
+      console.log('✓ Main merged into v1 release branch')
     } catch (error) {
-      console.error('Error merging into main and pushing:', error.message)
+      console.error('Error merging into v1 and pushing:', error.message)
       process.exit(1)
     }
 
     console.log('✅ Publication completed successfully!')
+    console.log('Process completed: main → tag → push main → merge to v1')
   } catch (error) {
     console.error('An unexpected error occurred:', error.message)
     process.exit(1)
