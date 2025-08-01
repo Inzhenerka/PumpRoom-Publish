@@ -81,6 +81,33 @@ jobs:
 > **Примечание:** Убедитесь, что вы сохранили свой API-ключ как секрет API_KEY в
 > настройках вашего репозитория.
 
+## Настройка заданий
+
+Файлы каждого задания должны располагаться в отдельной папке. Имя папки становится названием задания.
+
+Каждое задание настраивается в едином корневом файле `.inzhenerka.yml`. Вот его простейший пример:
+
+```yaml
+# yaml-language-server: $schema=https://pumproom-api.inzhenerka-cloud.com/inzhenerka_schema
+pump_room:
+  backend: judge0
+  language: auto
+  visible_name: Демо
+
+  tasks:
+    - name: code_task1
+      
+    - name: code_task2
+      framework: python_multi
+
+    - name: agent_task1
+      backend: agent
+      framework: helper
+```
+
+При работе с файлом IDE автоматически предложит описание полей и автоподстановку. 
+**Более подробная техническая документация предоставляется по запросу.**
+
 ## Разработка Action
 
 Требуется NodeJS версии 20 и выше.
