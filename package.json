@@ -1,7 +1,7 @@
 {
   "name": "typescript-action",
   "description": "GitHub Actions TypeScript template",
-  "version": "1.0.1",
+  "version": "1.0.4",
   "author": "",
   "type": "module",
   "private": true,
@@ -23,18 +23,18 @@
     "node": ">=20"
   },
   "scripts": {
-    "bundle": "npm run format:write && npm run package",
+    "bundle": "bun run format:write && bun run package",
     "ci-test": "NODE_OPTIONS=--experimental-vm-modules NODE_NO_WARNINGS=1 npx jest",
-    "coverage": "npx make-coverage-badge --output-path ./badges/coverage.svg",
     "format:write": "npx prettier --write .",
     "format:check": "npx prettier --check .",
     "lint": "npx eslint .",
     "local-action": "npx @github/local-action . src/main.ts .env",
     "package": "npx rollup --config rollup.config.ts --configPlugin @rollup/plugin-typescript",
-    "package:watch": "npm run package -- --watch",
+    "package:watch": "bun run package -- --watch",
     "test": "NODE_OPTIONS=--experimental-vm-modules NODE_NO_WARNINGS=1 npx jest",
-    "all": "npm run format:write && npm run lint && npm run test && npm run coverage && npm run package",
-    "postversion": "git push && git push --tags"
+    "all": "bun run format:write && bun run lint && bun run test && bun run package",
+    "publish:minor": "node scripts/publish.js minor",
+    "publish:patch": "node scripts/publish.js patch"
   },
   "license": "MIT",
   "dependencies": {

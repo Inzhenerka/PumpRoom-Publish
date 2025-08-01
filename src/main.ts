@@ -237,7 +237,7 @@ export async function run(): Promise<void> {
  * @param outputPath - The path where the ZIP file will be created
  * @param ignoreList - List of files and directories to ignore
  */
-async function createZipArchive(
+export async function createZipArchive(
   sourceDir: string,
   outputPath: string,
   ignoreList: string[]
@@ -296,7 +296,7 @@ async function createZipArchive(
  * @param repoName - Repository name
  * @param apiKey - API key for authentication
  */
-async function uploadArchive(
+export async function uploadArchive(
   zipPath: string,
   realm: string,
   repoName: string,
