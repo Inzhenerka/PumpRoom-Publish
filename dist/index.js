@@ -51781,7 +51781,8 @@ async function validateInzhenerkaYml(rootDir) {
         const response = await axios.post('https://pumproom-api.inzhenerka-cloud.com/inzhenerka_schema', jsonBody, {
             headers: {
                 'Content-Type': 'application/json'
-            }
+            },
+            timeout: 60000 // 1 minute timeout for validation
         });
         // Check the response status
         if (response.status === 200) {
@@ -51921,7 +51922,8 @@ async function uploadArchive(zipPath, realm, repoName, apiKey) {
             headers: {
                 'X-API-KEY': apiKey,
                 'Content-Type': 'multipart/form-data'
-            }
+            },
+            timeout: 600000 // 10 minutes timeout to prevent 504 errors
         });
         coreExports.info(`Response status: ${response.status}`);
         if (response.status !== 200) {
