@@ -146,7 +146,8 @@ export async function validateInzhenerkaYml(rootDir: string): Promise<void> {
       {
         headers: {
           'Content-Type': 'application/json'
-        }
+        },
+        timeout: 60000 // 1 minute timeout for validation
       }
     )
 
@@ -323,7 +324,8 @@ export async function uploadArchive(
         headers: {
           'X-API-KEY': apiKey,
           'Content-Type': 'multipart/form-data'
-        }
+        },
+        timeout: 600000 // 10 minutes timeout to prevent 504 errors
       }
     )
 
