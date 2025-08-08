@@ -10,14 +10,12 @@ import { fileFromPath } from 'formdata-node/file-from-path'
  * Interface for the PumpRoom API response
  */
 export interface PumpRoomApiResponse {
-  repo_updated: boolean
   pushed_at: string
-  tasks_current: number
-  tasks_updated: number
+  tasks_uploaded: number
   tasks_created: number
+  tasks_updated: number
   tasks_deleted: number
-  tasks_cached: number
-  tasks_synchronized_with_cms: number
+  tasks_retained: number
 }
 
 /**
@@ -32,16 +30,14 @@ export function formatPumpRoomResponse(response: PumpRoomApiResponse): string {
   return `
 📊 PumpRoom Repository Update Summary:
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-✅ Repository Updated: ${response.repo_updated ? 'Yes' : 'No'}
 🕒 Pushed At: ${formattedDate}
 
 📋 Tasks Summary:
-  • Current: ${response.tasks_current}
-  • Updated: ${response.tasks_updated}
+  • Uploaded: ${response.tasks_uploaded}
   • Created: ${response.tasks_created}
+  • Updated: ${response.tasks_updated}
   • Deleted: ${response.tasks_deleted}
-  • Cached: ${response.tasks_cached}
-  • Synchronized with CMS: ${response.tasks_synchronized_with_cms}
+  • Retained: ${response.tasks_retained}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 `
 }
@@ -290,12 +286,16 @@ export async function createZipArchive(
 }
 
 /**
- * Uploads the ZIP archive to the PumpRoom API.
+ * Uploads the ZIP archive to the PumpRoom API using the /upload_tasks endpoint.
  *
  * @param zipPath - Path to the ZIP archive
- * @param realm - Realm identifier
- * @param repoName - Repository name
+ * @param realm - Realm identifier (unique school identifier)
+ * @param repoName - Repository name (unique name provided by PumpRoom Admin)
  * @param apiKey - API key for authentication
+ *
+ * Note: This function uses default values for force_update (false) and retain_deleted (false).
+ * - force_update: Force update of every existing tasks
+ * - retain_deleted: Keep previously uploaded tasks that are not present in the archive
  */
 export async function uploadArchive(
   zipPath: string,
@@ -308,9 +308,10 @@ export async function uploadArchive(
   try {
     // Create form data
     const formData = new FormData()
-    formData.append('repo_name', repoName)
     formData.append('realm', realm)
-    formData.append('source', 'zip')
+    formData.append('repo_name', repoName)
+    formData.append('force_update', 'false')
+    formData.append('retain_deleted', 'false')
 
     // Add the ZIP file
     const file = await fileFromPath(zipPath)
@@ -318,7 +319,7 @@ export async function uploadArchive(
 
     // Make the API request
     const response = await axios.post(
-      'https://pumproom-api.inzhenerka-cloud.com/repo/index',
+      'https://pumproom-api.inzhenerka-cloud.com/repo/upload_tasks',
       formData,
       {
         headers: {
