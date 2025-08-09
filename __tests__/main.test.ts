@@ -168,14 +168,12 @@ describe('main.ts', () => {
   it('Formats the API response correctly', () => {
     // Create a sample response object
     const sampleResponse = {
-      repo_updated: true,
       pushed_at: '2025-07-30T21:26:10.875969',
-      tasks_current: 33,
-      tasks_updated: 33,
+      tasks_uploaded: 33,
       tasks_created: 0,
+      tasks_updated: 33,
       tasks_deleted: 1,
-      tasks_cached: 33,
-      tasks_synchronized_with_cms: 2
+      tasks_retained: 32
     }
 
     // Format the response
@@ -183,14 +181,13 @@ describe('main.ts', () => {
 
     // Verify the formatted response contains the expected information
     expect(formattedResponse).toContain('PumpRoom Repository Update Summary')
-    expect(formattedResponse).toContain('Repository Updated: Yes')
+    expect(formattedResponse).toContain('Pushed At:')
     expect(formattedResponse).toContain('Tasks Summary')
-    expect(formattedResponse).toContain('Current: 33')
-    expect(formattedResponse).toContain('Updated: 33')
+    expect(formattedResponse).toContain('Uploaded: 33')
     expect(formattedResponse).toContain('Created: 0')
+    expect(formattedResponse).toContain('Updated: 33')
     expect(formattedResponse).toContain('Deleted: 1')
-    expect(formattedResponse).toContain('Cached: 33')
-    expect(formattedResponse).toContain('Synchronized with CMS: 2')
+    expect(formattedResponse).toContain('Retained: 32')
   })
 
   it('Handles API error correctly', async () => {

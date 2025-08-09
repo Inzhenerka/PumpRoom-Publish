@@ -51684,16 +51684,14 @@ function formatPumpRoomResponse(response) {
     return `
 📊 PumpRoom Repository Update Summary:
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-✅ Repository Updated: ${response.repo_updated ? 'Yes' : 'No'}
 🕒 Pushed At: ${formattedDate}
 
 📋 Tasks Summary:
-  • Current: ${response.tasks_current}
-  • Updated: ${response.tasks_updated}
+  • Uploaded: ${response.tasks_uploaded}
   • Created: ${response.tasks_created}
+  • Updated: ${response.tasks_updated}
   • Deleted: ${response.tasks_deleted}
-  • Cached: ${response.tasks_cached}
-  • Synchronized with CMS: ${response.tasks_synchronized_with_cms}
+  • Retained: ${response.tasks_retained}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 `;
 }
@@ -51899,26 +51897,31 @@ async function createZipArchive(sourceDir, outputPath, ignoreList) {
     coreExports.info(`ZIP archive created at: ${outputPath}`);
 }
 /**
- * Uploads the ZIP archive to the PumpRoom API.
+ * Uploads the ZIP archive to the PumpRoom API using the /upload_tasks endpoint.
  *
  * @param zipPath - Path to the ZIP archive
- * @param realm - Realm identifier
- * @param repoName - Repository name
+ * @param realm - Realm identifier (unique school identifier)
+ * @param repoName - Repository name (unique name provided by PumpRoom Admin)
  * @param apiKey - API key for authentication
+ *
+ * Note: This function uses default values for force_update (false) and retain_deleted (false).
+ * - force_update: Force update of every existing tasks
+ * - retain_deleted: Keep previously uploaded tasks that are not present in the archive
  */
 async function uploadArchive(zipPath, realm, repoName, apiKey) {
     coreExports.info('Uploading archive to PumpRoom...');
     try {
         // Create form data
         const formData = new FormData$1();
-        formData.append('repo_name', repoName);
         formData.append('realm', realm);
-        formData.append('source', 'zip');
+        formData.append('repo_name', repoName);
+        formData.append('force_update', 'false');
+        formData.append('retain_deleted', 'false');
         // Add the ZIP file
         const file = await fileFromPath(zipPath);
         formData.append('archive', file);
         // Make the API request
-        const response = await axios.post('https://pumproom-api.inzhenerka-cloud.com/repo/index', formData, {
+        const response = await axios.post('https://pumproom-api.inzhenerka-cloud.com/repo/upload_tasks', formData, {
             headers: {
                 'X-API-KEY': apiKey,
                 'Content-Type': 'multipart/form-data'
