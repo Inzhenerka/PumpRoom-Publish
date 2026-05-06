@@ -10,7 +10,7 @@
  * 4. Builds using "bun all"
  * 5. Commits the result in main
  * 6. Executes npm version, creates tag and pushes main
- * 7. Merges main into v1 release branch and pushes
+ * 7. Fast-forwards remote v1 release branch to main
  *
  * Usage:
  *   node scripts/publish.js <minor|patch>
@@ -151,35 +151,17 @@ async function main() {
       process.exit(1)
     }
 
-    // Step 5: Merge main into v1 release branch and push
+    // Step 5: Update v1 release branch to point at main.
+    // Fast-forward push avoids checking out v1 locally — keeps the working tree
+    // on main throughout, so a mid-publish failure leaves nothing to clean up.
     try {
-      // Check if v1 branch exists, create if not
-      const branches = execSync('git branch -r').toString()
-      if (!branches.includes('origin/v1')) {
-        console.log('Remote v1 branch does not exist. Creating it...')
-        exec('git checkout -b v1')
-        exec('git push origin v1')
-        exec('git checkout main')
-      }
-
-      // Switch to v1 branch
-      exec('git checkout v1')
-
-      // Pull latest changes from remote v1
-      exec('git pull origin v1')
-
-      // Merge main into v1
-      exec('git merge main --no-ff -m "Merge main into v1 release branch"')
-
-      // Push v1
-      exec('git push origin v1')
-
-      // Switch back to main
-      exec('git checkout main')
-
-      console.log('✓ Main merged into v1 release branch')
+      exec('git push origin main:v1')
+      console.log('✓ v1 release branch updated to main')
     } catch (error) {
-      console.error('Error merging into v1 and pushing:', error.message)
+      console.error('Error updating v1 branch:', error.message)
+      console.error(
+        'If v1 has diverged from main, resolve manually before retrying.'
+      )
       process.exit(1)
     }
 
