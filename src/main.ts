@@ -4,8 +4,7 @@ import * as os from 'os'
 import * as path from 'path'
 import AdmZip from 'adm-zip'
 
-const VALIDATE_URL =
-  'https://pumproom-api.inzhenerka-cloud.com/inzhenerka_schema'
+const VALIDATE_URL = 'https://pumproom-api.inzhenerka-cloud.com/schema/config'
 const UPLOAD_URL = 'https://pumproom-api.inzhenerka-cloud.com/repo/upload_tasks'
 
 export interface PumpRoomApiResponse {
@@ -91,12 +90,12 @@ export async function validateUniqueFolderNames(
   core.info('✅ No folder duplicates found')
 }
 
-export async function validateInzhenerkaYml(rootDir: string): Promise<void> {
-  core.info('🔍 Validating .inzhenerka.yml...')
+export async function validatePumproomYml(rootDir: string): Promise<void> {
+  core.info('🔍 Validating .pumproom.yml...')
 
-  const configPath = path.join(rootDir, '.inzhenerka.yml')
+  const configPath = path.join(rootDir, '.pumproom.yml')
   if (!fs.existsSync(configPath)) {
-    throw new Error('❌ .inzhenerka.yml file not found')
+    throw new Error('❌ .pumproom.yml file not found')
   }
 
   const configContent = fs.readFileSync(configPath, 'utf8')
@@ -145,7 +144,7 @@ export async function run(): Promise<void> {
     core.debug(`Ignore list: ${ignoreList.join(', ')}`)
 
     await validateUniqueFolderNames(rootDir)
-    await validateInzhenerkaYml(rootDir)
+    await validatePumproomYml(rootDir)
 
     const tempZipPath = path.join(
       os.tmpdir(),

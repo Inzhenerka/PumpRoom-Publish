@@ -30577,7 +30577,7 @@ function requireAdmZip () {
 var admZipExports = requireAdmZip();
 var AdmZip = /*@__PURE__*/getDefaultExportFromCjs(admZipExports);
 
-const VALIDATE_URL = 'https://pumproom-api.inzhenerka-cloud.com/inzhenerka_schema';
+const VALIDATE_URL = 'https://pumproom-api.inzhenerka-cloud.com/schema/config';
 const UPLOAD_URL = 'https://pumproom-api.inzhenerka-cloud.com/repo/upload_tasks';
 function formatPumpRoomResponse(response) {
     const formattedDate = new Date(response.pushed_at).toLocaleString();
@@ -30640,11 +30640,11 @@ async function validateUniqueFolderNames(rootDir) {
     }
     coreExports.info('✅ No folder duplicates found');
 }
-async function validateInzhenerkaYml(rootDir) {
-    coreExports.info('🔍 Validating .inzhenerka.yml...');
-    const configPath = path.join(rootDir, '.inzhenerka.yml');
+async function validatePumproomYml(rootDir) {
+    coreExports.info('🔍 Validating .pumproom.yml...');
+    const configPath = path.join(rootDir, '.pumproom.yml');
     if (!fs.existsSync(configPath)) {
-        throw new Error('❌ .inzhenerka.yml file not found');
+        throw new Error('❌ .pumproom.yml file not found');
     }
     const configContent = fs.readFileSync(configPath, 'utf8');
     let response;
@@ -30678,7 +30678,7 @@ async function run() {
         coreExports.debug(`Root directory: ${rootDir}`);
         coreExports.debug(`Ignore list: ${ignoreList.join(', ')}`);
         await validateUniqueFolderNames(rootDir);
-        await validateInzhenerkaYml(rootDir);
+        await validatePumproomYml(rootDir);
         const tempZipPath = path.join(require$$0.tmpdir(), `pumproom-${Date.now()}-${process.pid}.zip`);
         try {
             await createZipArchive(rootDir, tempZipPath, ignoreList);

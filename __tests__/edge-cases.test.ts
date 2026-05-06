@@ -17,13 +17,13 @@ const originalFetch = globalThis.fetch
 globalThis.fetch = fetchMock as unknown as typeof fetch
 
 let validateUniqueFolderNames: (rootDir: string) => Promise<void>
-let validateInzhenerkaYml: (rootDir: string) => Promise<void>
+let validatePumproomYml: (rootDir: string) => Promise<void>
 let run: () => Promise<void>
 
 beforeAll(async () => {
   const mainModule = await import('../src/main.js')
   validateUniqueFolderNames = mainModule.validateUniqueFolderNames
-  validateInzhenerkaYml = mainModule.validateInzhenerkaYml
+  validatePumproomYml = mainModule.validatePumproomYml
   run = mainModule.run
 })
 
@@ -50,7 +50,7 @@ describe('Edge cases in validateUniqueFolderNames', () => {
   })
 })
 
-describe('Edge cases in validateInzhenerkaYml', () => {
+describe('Edge cases in validatePumproomYml', () => {
   beforeEach(() => {
     jest.resetAllMocks()
     ;(path.join as Mock).mockImplementation((...args: unknown[]) =>
@@ -64,7 +64,7 @@ describe('Edge cases in validateInzhenerkaYml', () => {
   it('reports network errors with the original message', async () => {
     fetchMock.mockRejectedValue(new Error('Network Error'))
 
-    await expect(validateInzhenerkaYml('/mock/dir')).rejects.toThrow(
+    await expect(validatePumproomYml('/mock/dir')).rejects.toThrow(
       '❌ Configuration validation failed:\nError: Network Error'
     )
   })
@@ -72,7 +72,7 @@ describe('Edge cases in validateInzhenerkaYml', () => {
   it('coerces non-Error rejections to a string message', async () => {
     fetchMock.mockRejectedValue('Not an Error object')
 
-    await expect(validateInzhenerkaYml('/mock/dir')).rejects.toThrow(
+    await expect(validatePumproomYml('/mock/dir')).rejects.toThrow(
       '❌ Configuration validation failed:\nError: Not an Error object'
     )
   })

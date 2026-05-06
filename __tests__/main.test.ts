@@ -21,14 +21,14 @@ import type { PumpRoomApiResponse } from '../src/main.js'
 let run: () => Promise<void>
 let formatPumpRoomResponse: (response: PumpRoomApiResponse) => string
 let validateUniqueFolderNames: (rootDir: string) => Promise<void>
-let validateInzhenerkaYml: (rootDir: string) => Promise<void>
+let validatePumproomYml: (rootDir: string) => Promise<void>
 
 beforeAll(async () => {
   const mainModule = await import('../src/main.js')
   run = mainModule.run
   formatPumpRoomResponse = mainModule.formatPumpRoomResponse
   validateUniqueFolderNames = mainModule.validateUniqueFolderNames
-  validateInzhenerkaYml = mainModule.validateInzhenerkaYml
+  validatePumproomYml = mainModule.validatePumproomYml
 })
 
 afterAll(() => {
@@ -128,7 +128,7 @@ describe('main.ts', () => {
     expect(core.info).toHaveBeenCalledWith(
       '🔍 Validating unique folder names...'
     )
-    expect(core.info).toHaveBeenCalledWith('🔍 Validating .inzhenerka.yml...')
+    expect(core.info).toHaveBeenCalledWith('🔍 Validating .pumproom.yml...')
     expect(fetchMock).toHaveBeenCalledTimes(2)
     expect(fs.unlinkSync).toHaveBeenCalled()
     expect(core.setFailed).not.toHaveBeenCalled()
@@ -239,7 +239,7 @@ describe('main.ts', () => {
     })
   })
 
-  describe('validateInzhenerkaYml', () => {
+  describe('validatePumproomYml', () => {
     beforeEach(() => {
       jest.resetAllMocks()
       ;(path.join as Mock).mockImplementation((...args: unknown[]) =>
@@ -252,7 +252,7 @@ describe('main.ts', () => {
     })
 
     it('passes when configuration is valid', async () => {
-      await validateInzhenerkaYml(mockRootDir)
+      await validatePumproomYml(mockRootDir)
 
       expect(core.info).toHaveBeenCalledWith('✅ Configuration is valid')
     })
@@ -260,15 +260,15 @@ describe('main.ts', () => {
     it('throws when configuration file is not found', async () => {
       ;(fs.existsSync as Mock).mockReturnValue(false)
 
-      await expect(validateInzhenerkaYml(mockRootDir)).rejects.toThrow(
-        '❌ .inzhenerka.yml file not found'
+      await expect(validatePumproomYml(mockRootDir)).rejects.toThrow(
+        '❌ .pumproom.yml file not found'
       )
     })
 
     it('throws when API returns non-200 status', async () => {
       fetchMock.mockResolvedValue(jsonResponse('Bad Request', 400))
 
-      await expect(validateInzhenerkaYml(mockRootDir)).rejects.toThrow(
+      await expect(validatePumproomYml(mockRootDir)).rejects.toThrow(
         '❌ Configuration validation failed:'
       )
     })
@@ -276,7 +276,7 @@ describe('main.ts', () => {
     it('throws when fetch rejects', async () => {
       fetchMock.mockRejectedValue(new Error('Network Error'))
 
-      await expect(validateInzhenerkaYml(mockRootDir)).rejects.toThrow(
+      await expect(validatePumproomYml(mockRootDir)).rejects.toThrow(
         '❌ Configuration validation failed:\nError: Network Error'
       )
     })
