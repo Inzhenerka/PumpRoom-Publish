@@ -117,7 +117,9 @@ describe('Edge cases in run function', () => {
 
     await run()
 
-    expect(core.debug).toHaveBeenCalledWith('Ignore list: .git, .github')
+    expect(core.debug).toHaveBeenCalledWith(
+      'Ignore list: .git, .github, .claude'
+    )
   })
 
   it('passes non-Error throws into core.setFailed', async () => {
