@@ -30671,7 +30671,7 @@ async function run() {
         const realm = coreExports.getInput('realm');
         const repoName = coreExports.getInput('repo_name');
         const apiKey = coreExports.getInput('api_key');
-        const ignoreList = ['.git', '.github'];
+        const ignoreList = ['.git', '.github', '.claude'];
         if (ignoreInput) {
             ignoreList.push(...ignoreInput.split(',').map((item) => item.trim()));
         }
