@@ -135,7 +135,7 @@ export async function run(): Promise<void> {
     const repoName = core.getInput('repo_name')
     const apiKey = core.getInput('api_key')
 
-    const ignoreList = ['.git', '.github']
+    const ignoreList = ['.git', '.github', '.claude']
     if (ignoreInput) {
       ignoreList.push(...ignoreInput.split(',').map((item) => item.trim()))
     }
