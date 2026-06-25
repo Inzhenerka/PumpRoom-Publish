@@ -5,7 +5,7 @@ import * as path from 'path'
 import AdmZip from 'adm-zip'
 
 const VALIDATE_URL = 'https://pumproom-api.inzhenerka-cloud.com/schema/config'
-const UPLOAD_URL = 'https://pumproom-api.inzhenerka-cloud.com/repo/upload_tasks'
+const UPLOAD_URL = 'https://pumproom-api.inzhenerka-cloud.com/upload/repo'
 
 export interface PumpRoomApiResponse {
   pushed_at: string
