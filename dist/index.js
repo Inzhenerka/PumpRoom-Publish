@@ -30578,7 +30578,7 @@ var admZipExports = requireAdmZip();
 var AdmZip = /*@__PURE__*/getDefaultExportFromCjs(admZipExports);
 
 const VALIDATE_URL = 'https://pumproom-api.inzhenerka-cloud.com/schema/config';
-const UPLOAD_URL = 'https://pumproom-api.inzhenerka-cloud.com/repo/upload_tasks';
+const UPLOAD_URL = 'https://pumproom-api.inzhenerka-cloud.com/upload/repo';
 function formatPumpRoomResponse(response) {
     const formattedDate = new Date(response.pushed_at).toLocaleString();
     return `
