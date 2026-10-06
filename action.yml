@@ -9,6 +9,12 @@ branding:
 
 # Define your inputs here.
 inputs:
+  source_ref:
+    description:
+      'Stable source identifier; defaults to the URL of the workflow repository.
+      Sent verbatim when provided; set for another checkout.'
+    required: false
+    default: ''
   root_dir:
     description: 'Directory to be archived and uploaded'
     required: false

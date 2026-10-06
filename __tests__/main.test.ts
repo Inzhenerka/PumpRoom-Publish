@@ -18,6 +18,7 @@ globalThis.fetch = fetchMock as unknown as typeof fetch
 
 import type { PumpRoomApiResponse } from '../src/main.js'
 
+let resolveSourceRef: (override: string) => string
 let run: () => Promise<void>
 let formatPumpRoomResponse: (response: PumpRoomApiResponse) => string
 let validateUniqueFolderNames: (rootDir: string) => Promise<void>
@@ -25,6 +26,7 @@ let validatePumproomYml: (rootDir: string) => Promise<void>
 
 beforeAll(async () => {
   const mainModule = await import('../src/main.js')
+  resolveSourceRef = mainModule.resolveSourceRef
   run = mainModule.run
   formatPumpRoomResponse = mainModule.formatPumpRoomResponse
   validateUniqueFolderNames = mainModule.validateUniqueFolderNames
@@ -56,10 +58,17 @@ describe('main.ts', () => {
     tasks_created: 0,
     tasks_updated: 33,
     tasks_deleted: 1,
-    tasks_retained: 32
+    tasks_restored: 0,
+    tasks_unchanged: 0,
+    tasks_skipped: 1,
+    skipped: [{ name: 'manual', reason: 'managed_by_admin' }]
   }
 
   beforeEach(() => {
+    admZip.mockImplementation(() => ({
+      addLocalFile: admZip.addLocalFile,
+      writeZip: admZip.writeZip
+    }))
     process.cwd = jest.fn(() => '/mock/cwd') as Mock<() => string>
     ;(path.join as Mock).mockImplementation((...args: unknown[]) =>
       (args as string[]).join('/')
@@ -99,6 +108,8 @@ describe('main.ts', () => {
           return mockRealm
         case 'repo_name':
           return mockRepoName
+        case 'source_ref':
+          return 'https://github.com/example/tasks'
         case 'api_key':
           return mockApiKey
         default:
@@ -130,9 +141,42 @@ describe('main.ts', () => {
     )
     expect(core.info).toHaveBeenCalledWith('🔍 Validating .pumproom.yml...')
     expect(fetchMock).toHaveBeenCalledTimes(2)
+    expect(fetchMock.mock.calls[0][0]).toBe(
+      'https://pumproom-api.inzhenerka-cloud.com/schema/configs'
+    )
+    const form = fetchMock.mock.calls[1][1]?.body as FormData
+    expect(form.get('source_ref')).toBe('https://github.com/example/tasks')
+    expect(form.get('overwrite')).toBeNull()
+    expect(form.get('delete_missing')).toBeNull()
+    expect(form.get('managed_by')).toBeNull()
+    expect(form.get('force_update')).toBe('false')
+    expect(form.has('retain_deleted')).toBe(false)
     expect(fs.unlinkSync).toHaveBeenCalled()
     expect(core.setFailed).not.toHaveBeenCalled()
   })
+
+  it.each(['   ', ' git:course '])(
+    'preserves source_ref input %j through upload for API validation',
+    async (sourceRef) => {
+      const defaultInput = core.getInput.getMockImplementation()!
+      core.getInput.mockImplementation((name, options) => {
+        if (name === 'source_ref')
+          return options?.trimWhitespace === false ? sourceRef : sourceRef.trim()
+        return defaultInput(name, options)
+      })
+      ;(fs.readdirSync as Mock).mockReturnValue([])
+
+      await run()
+
+      expect(core.getInput).toHaveBeenCalledWith('source_ref', {
+        trimWhitespace: false
+      })
+      expect(fetchMock).toHaveBeenCalledTimes(2)
+      const form = fetchMock.mock.calls[1][1]?.body as FormData
+      expect(form.get('source_ref')).toBe(sourceRef)
+      expect(core.setFailed).not.toHaveBeenCalled()
+    }
+  )
 
   it('formats the API response correctly', () => {
     const formatted = formatPumpRoomResponse(sampleResponse)
@@ -143,7 +187,8 @@ describe('main.ts', () => {
     expect(formatted).toContain('Created: 0')
     expect(formatted).toContain('Updated: 33')
     expect(formatted).toContain('Deleted: 1')
-    expect(formatted).toContain('Retained: 32')
+    expect(formatted).toContain('Skipped: 1')
+    expect(formatted).toContain('manual: managed_by_admin')
   })
 
   it('marks the action failed when upload returns non-200, and cleans up', async () => {
@@ -281,4 +326,31 @@ describe('main.ts', () => {
       )
     })
   })
+})
+
+describe('source reference identity', () => {
+  it('derives the workflow repository and supports another checkout override', () => {
+    const oldRepo = process.env.GITHUB_REPOSITORY
+    const oldServer = process.env.GITHUB_SERVER_URL
+    try {
+      process.env.GITHUB_REPOSITORY = 'org/repo'
+      process.env.GITHUB_SERVER_URL = 'https://git.example.com'
+      expect(resolveSourceRef('')).toBe('https://git.example.com/org/repo')
+      expect(resolveSourceRef('https://github.com/other/tasks.git/')).toBe(
+        'https://github.com/other/tasks.git/'
+      )
+    } finally {
+      if (oldRepo === undefined) delete process.env.GITHUB_REPOSITORY
+      else process.env.GITHUB_REPOSITORY = oldRepo
+      if (oldServer === undefined) delete process.env.GITHUB_SERVER_URL
+      else process.env.GITHUB_SERVER_URL = oldServer
+    }
+  })
+
+  it.each([' whitespace ', 'line\nbreak', 'x'.repeat(2049)])(
+    'passes explicit identifiers verbatim for API validation: %s',
+    (url) => {
+      expect(resolveSourceRef(url)).toBe(url)
+    }
+  )
 })

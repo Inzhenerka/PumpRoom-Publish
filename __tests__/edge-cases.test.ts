@@ -91,6 +91,8 @@ describe('Edge cases in run function', () => {
           return 'test-realm'
         case 'repo_name':
           return 'test-repo'
+        case 'source_ref':
+          return 'https://github.com/example/tasks'
         case 'api_key':
           return 'test-api-key'
         default:

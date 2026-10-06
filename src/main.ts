@@ -4,8 +4,20 @@ import * as os from 'os'
 import * as path from 'path'
 import AdmZip from 'adm-zip'
 
-const VALIDATE_URL = 'https://pumproom-api.inzhenerka-cloud.com/schema/config'
-const UPLOAD_URL = 'https://pumproom-api.inzhenerka-cloud.com/upload/repo'
+const VALIDATE_URL = 'https://pumproom-api.inzhenerka-cloud.com/schema/configs'
+const UPLOAD_URL = 'https://pumproom-api.inzhenerka-cloud.com/upload/sync_repo'
+
+export function resolveSourceRef(override: string): string {
+  const repository = process.env.GITHUB_REPOSITORY
+  if (!override && !repository)
+    throw new Error('source_ref or GITHUB_REPOSITORY is required')
+  if (override) return override
+  const url = new URL(
+    `${process.env.GITHUB_SERVER_URL || 'https://github.com'}/${repository}`
+  )
+  url.pathname = url.pathname.replace(/\/$/, '').replace(/\.git$/, '')
+  return url.href.replace(/\/$/, '')
+}
 
 export interface PumpRoomApiResponse {
   pushed_at: string
@@ -13,7 +25,10 @@ export interface PumpRoomApiResponse {
   tasks_created: number
   tasks_updated: number
   tasks_deleted: number
-  tasks_retained: number
+  tasks_restored: number
+  tasks_unchanged: number
+  tasks_skipped: number
+  skipped: { name: string; reason: string }[]
 }
 
 export function formatPumpRoomResponse(response: PumpRoomApiResponse): string {
@@ -28,7 +43,10 @@ export function formatPumpRoomResponse(response: PumpRoomApiResponse): string {
   • Created: ${response.tasks_created}
   • Updated: ${response.tasks_updated}
   • Deleted: ${response.tasks_deleted}
-  • Retained: ${response.tasks_retained}
+  • Restored: ${response.tasks_restored}
+  • Unchanged: ${response.tasks_unchanged}
+  • Skipped: ${response.tasks_skipped}
+${response.skipped.map((item) => `    - ${item.name}: ${item.reason}`).join('\n')}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 `
 }
@@ -134,6 +152,9 @@ export async function run(): Promise<void> {
     const realm = core.getInput('realm')
     const repoName = core.getInput('repo_name')
     const apiKey = core.getInput('api_key')
+    const sourceRef = resolveSourceRef(
+      core.getInput('source_ref', { trimWhitespace: false })
+    )
 
     const ignoreList = ['.git', '.github', '.claude']
     if (ignoreInput) {
@@ -152,7 +173,7 @@ export async function run(): Promise<void> {
     )
     try {
       await createZipArchive(rootDir, tempZipPath, ignoreList)
-      await uploadArchive(tempZipPath, realm, repoName, apiKey)
+      await uploadArchive(tempZipPath, realm, repoName, apiKey, sourceRef)
     } finally {
       if (fs.existsSync(tempZipPath)) {
         try {
@@ -213,13 +234,13 @@ export async function createZipArchive(
   core.info(`ZIP archive created at: ${outputPath}`)
 }
 
-// force_update=false: never overwrite tasks that already exist server-side.
-// retain_deleted=false: prune server tasks missing from the archive.
+// Reconcile only source-managed tasks with this exact source reference.
 export async function uploadArchive(
   zipPath: string,
   realm: string,
   repoName: string,
-  apiKey: string
+  apiKey: string,
+  sourceRef: string
 ): Promise<void> {
   core.info('Uploading archive to PumpRoom...')
 
@@ -230,7 +251,7 @@ export async function uploadArchive(
   formData.append('realm', realm)
   formData.append('repo_name', repoName)
   formData.append('force_update', 'false')
-  formData.append('retain_deleted', 'false')
+  formData.append('source_ref', sourceRef)
   formData.append('archive', blob, path.basename(zipPath))
 
   let response: Response
@@ -260,5 +281,9 @@ export async function uploadArchive(
 
   const data = (await response.json()) as PumpRoomApiResponse
   core.info(formatPumpRoomResponse(data))
+  if (data.tasks_skipped)
+    core.warning(
+      `${data.tasks_skipped} task(s) skipped; see ownership conflicts above`
+    )
   core.info('✅ Repo and tasks successfully registered')
 }

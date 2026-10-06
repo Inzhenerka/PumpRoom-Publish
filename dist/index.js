@@ -30577,8 +30577,18 @@ function requireAdmZip () {
 var admZipExports = requireAdmZip();
 var AdmZip = /*@__PURE__*/getDefaultExportFromCjs(admZipExports);
 
-const VALIDATE_URL = 'https://pumproom-api.inzhenerka-cloud.com/schema/config';
-const UPLOAD_URL = 'https://pumproom-api.inzhenerka-cloud.com/upload/repo';
+const VALIDATE_URL = 'https://pumproom-api.inzhenerka-cloud.com/schema/configs';
+const UPLOAD_URL = 'https://pumproom-api.inzhenerka-cloud.com/upload/sync_repo';
+function resolveSourceRef(override) {
+    const repository = process.env.GITHUB_REPOSITORY;
+    if (!override && !repository)
+        throw new Error('source_ref or GITHUB_REPOSITORY is required');
+    if (override)
+        return override;
+    const url = new URL(`${process.env.GITHUB_SERVER_URL || 'https://github.com'}/${repository}`);
+    url.pathname = url.pathname.replace(/\/$/, '').replace(/\.git$/, '');
+    return url.href.replace(/\/$/, '');
+}
 function formatPumpRoomResponse(response) {
     const formattedDate = new Date(response.pushed_at).toLocaleString();
     return `
@@ -30591,7 +30601,10 @@ function formatPumpRoomResponse(response) {
   • Created: ${response.tasks_created}
   • Updated: ${response.tasks_updated}
   • Deleted: ${response.tasks_deleted}
-  • Retained: ${response.tasks_retained}
+  • Restored: ${response.tasks_restored}
+  • Unchanged: ${response.tasks_unchanged}
+  • Skipped: ${response.tasks_skipped}
+${response.skipped.map((item) => `    - ${item.name}: ${item.reason}`).join('\n')}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 `;
 }
@@ -30671,6 +30684,7 @@ async function run() {
         const realm = coreExports.getInput('realm');
         const repoName = coreExports.getInput('repo_name');
         const apiKey = coreExports.getInput('api_key');
+        const sourceRef = resolveSourceRef(coreExports.getInput('source_ref', { trimWhitespace: false }));
         const ignoreList = ['.git', '.github', '.claude'];
         if (ignoreInput) {
             ignoreList.push(...ignoreInput.split(',').map((item) => item.trim()));
@@ -30682,7 +30696,7 @@ async function run() {
         const tempZipPath = path.join(require$$0.tmpdir(), `pumproom-${Date.now()}-${process.pid}.zip`);
         try {
             await createZipArchive(rootDir, tempZipPath, ignoreList);
-            await uploadArchive(tempZipPath, realm, repoName, apiKey);
+            await uploadArchive(tempZipPath, realm, repoName, apiKey, sourceRef);
         }
         finally {
             if (fs.existsSync(tempZipPath)) {
@@ -30730,9 +30744,8 @@ async function createZipArchive(sourceDir, outputPath, ignoreList) {
     zip.writeZip(outputPath);
     coreExports.info(`ZIP archive created at: ${outputPath}`);
 }
-// force_update=false: never overwrite tasks that already exist server-side.
-// retain_deleted=false: prune server tasks missing from the archive.
-async function uploadArchive(zipPath, realm, repoName, apiKey) {
+// Reconcile only source-managed tasks with this exact source reference.
+async function uploadArchive(zipPath, realm, repoName, apiKey, sourceRef) {
     coreExports.info('Uploading archive to PumpRoom...');
     const buffer = fs.readFileSync(zipPath);
     const blob = new Blob([new Uint8Array(buffer)], { type: 'application/zip' });
@@ -30740,7 +30753,7 @@ async function uploadArchive(zipPath, realm, repoName, apiKey) {
     formData.append('realm', realm);
     formData.append('repo_name', repoName);
     formData.append('force_update', 'false');
-    formData.append('retain_deleted', 'false');
+    formData.append('source_ref', sourceRef);
     formData.append('archive', blob, path.basename(zipPath));
     let response;
     try {
@@ -30764,6 +30777,8 @@ async function uploadArchive(zipPath, realm, repoName, apiKey) {
     }
     const data = (await response.json());
     coreExports.info(formatPumpRoomResponse(data));
+    if (data.tasks_skipped)
+        coreExports.warning(`${data.tasks_skipped} task(s) skipped; see ownership conflicts above`);
     coreExports.info('✅ Repo and tasks successfully registered');
 }
 

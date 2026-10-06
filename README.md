@@ -159,3 +159,32 @@ bun publish:patch
 6. Отправит изменения и теги в удаленный репозиторий
 7. Обновит удалённую ветку `v<major>` (например `v1`, `v2`) фаст-форвард push'ом
    из main; для мажорного релиза создаст новую ветку, не трогая старую
+
+## Source ownership and synchronization
+
+Publish calls `POST /upload/sync_repo` with a complete snapshot and a stable
+`source_ref`. New tasks are source-managed. Existing tasks are updated only when
+`managed_by=source` and their reference exactly matches. Admin-managed tasks and
+other sources are skipped with names and reasons in the report and a workflow
+warning. They are never overwritten by sync.
+
+Only missing source-managed tasks with this reference in the target PumpRoom
+folder are soft-deleted. A valid empty snapshot deletes that group; never
+publish a partial snapshot. Restoring or updating keeps the UID and history.
+`force_update=false`; `overwrite`, `delete_missing` and `retain_deleted` are not
+sync parameters.
+
+The optional `source_ref` Action input overrides
+`${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}`. The generated Git URL has no `.git`
+or trailing slash. An explicit reference can be any stable nonempty identifier
+and is sent verbatim. Set it when publishing another checkout. When moving a Git
+repository, migrate the stored reference or keep the old identifier via this
+input.
+
+In Admin, take control to protect manual edits from sync, or duplicate a task.
+An explicit import with overwrite remains available for intentional replacement
+(such as Tilda).
+
+Deploy with the new API and database migration. Old upload endpoints are
+removed. Remove legacy `source: cms/zip` configuration when updating task
+repositories; ownership is now maintained by API operations.
