@@ -1,7 +1,7 @@
-import { jest } from '@jest/globals'
+import { vi } from "vitest";
 
-export const readdirSync = jest.fn()
-export const statSync = jest.fn()
-export const unlinkSync = jest.fn()
-export const existsSync = jest.fn()
-export const readFileSync = jest.fn()
+export const readdirSync = vi.fn();
+export const statSync = vi.fn();
+export const unlinkSync = vi.fn();
+export const existsSync = vi.fn();
+export const readFileSync = vi.fn();

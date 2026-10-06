@@ -1,17 +1,8 @@
-import { jest } from '@jest/globals'
+import { vi } from "vitest";
 
-// Create mock functions for the AdmZip methods
-const addLocalFileMock = jest.fn()
-const writeZipMock = jest.fn()
-
-// Export the mock constructor
-export const admZip = jest.fn().mockImplementation(() => {
-  return {
-    addLocalFile: addLocalFileMock,
-    writeZip: writeZipMock
-  }
-})
-
-// Make the mock functions accessible on the constructor for test verification
-admZip.addLocalFile = addLocalFileMock
-admZip.writeZip = writeZipMock
+export const admZip = Object.assign(
+  vi.fn(function () {
+    return { addLocalFile: admZip.addLocalFile, writeZip: admZip.writeZip };
+  }),
+  { addLocalFile: vi.fn(), writeZip: vi.fn() },
+);

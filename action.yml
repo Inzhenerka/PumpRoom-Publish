@@ -10,29 +10,28 @@ branding:
 # Define your inputs here.
 inputs:
   source_ref:
-    description:
-      'Stable source identifier; defaults to the URL of the workflow repository.
-      Sent verbatim when provided; set for another checkout.'
+    description: "Stable source identifier; defaults to the URL of the workflow repository.
+      Sent verbatim when provided; set for another checkout."
     required: false
-    default: ''
+    default: ""
   root_dir:
-    description: 'Directory to be archived and uploaded'
+    description: "Directory to be archived and uploaded"
     required: false
-    default: ''
+    default: ""
   ignore:
-    description: 'Files and directories to ignore (comma-separated)'
+    description: "Files and directories to ignore (comma-separated)"
     required: false
-    default: ''
+    default: ""
   realm:
-    description: 'Realm identifier for the repository'
+    description: "Realm identifier for the repository"
     required: true
   repo_name:
-    description: 'Repository name'
+    description: "Repository name"
     required: true
   api_key:
-    description: 'API key for authentication'
+    description: "API key for authentication"
     required: true
 
 runs:
   using: node24
-  main: dist/index.js
+  main: dist/index.cjs

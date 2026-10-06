@@ -32,15 +32,15 @@ steps:
     uses: inzhenerka/pumproom-publish@v1
     with:
       # Обязательно: ID школы из админки
-      realm: 'your-realm-name'
+      realm: "your-realm-name"
       # Обязательно: Имя репозитория
       repo_name: ${{ github.event.repository.name }}
       # Обязательно: API-ключ для публикации из админки
       api_key: ${{ secrets.api_key }}
       # Каталог для архивации и загрузки (по умолчанию корень репозитория)
-      root_dir: ''
+      root_dir: ""
       # Файлы и каталоги для исключения (разделенные запятыми)
-      ignore: '.idea,.vscode'
+      ignore: ".idea,.vscode"
 ```
 
 ### Входные параметры
@@ -72,10 +72,10 @@ jobs:
       - name: Upload to PumpRoom
         uses: inzhenerka/pumproom-publish@v1
         with:
-          realm: 'inzh'
+          realm: "inzh"
           repo_name: ${{ github.event.repository.name }}
           api_key: ${{ secrets.api_key }}
-          ignore: '.idea,.vscode'
+          ignore: ".idea,.vscode"
 ```
 
 > **Примечание:** Убедитесь, что вы сохранили свой API-ключ как секрет API_KEY в
@@ -113,52 +113,61 @@ pump_room:
 
 ## Разработка Action
 
-Требуется NodeJS версии 24 и выше.
+Node.js 24 и Bun 1.4.2. Установка зависимостей:
 
-1. Установка зависимостей
-
-```bash
-bun install
+```sh
+bun install --frozen-lockfile
 ```
 
-1. Компиляция JavaScript для распространения
+| Команда              | Назначение                               |
+| -------------------- | ---------------------------------------- |
+| `bun run format`     | Форматирование через oxfmt               |
+| `bun run check`      | Проверка TypeScript без генерации файлов |
+| `bun run lint`       | Проверка через oxlint                    |
+| `bun run test`       | Vitest с покрытием                       |
+| `bun run test:watch` | Тесты при изменениях                     |
+| `bun run build`      | Сборка Node.js Action через esbuild      |
+| `bun run prep`       | Форматирование, типы и линтер            |
+| `bun run verify`     | Все проверки и сборка                    |
 
-```bash
-bun bundle
+Коммитьте `dist/index.cjs` и карту исходников вместе с изменениями: GitHub запускает
+готовый bundle без установки зависимостей. CI проверяет его соответствие исходникам.
+Bun используется для разработки; Action выполняется в Node.js 24.
+
+Для локальной отладки скопируйте `.env.example` в `.env` и заполните параметры.
+`bun run local-action` запускает реальную синхронизацию — используйте тестовую папку.
+
+## Выпуск Action
+
+Используется release-it, как в SDK и Admin. Изменения сначала нужно закоммитить
+в `main`; рабочее дерево должно быть чистым, upstream — настроен.
+
+```sh
+bun run release:dry-run  # Просмотр без публикации; не заменяет bun run verify
+bun run release         # Версия определяется по Conventional Commits
+bun run release:major   # Явный major, например 2.2.0 → 3.0.0
+bun run release:minor
+bun run release:patch
 ```
 
-1. Запуск автотестов
+`feat!` и `BREAKING CHANGE` требуют major, `feat` — minor, исправления — patch.
+Перед выпуском запускаются проверки и сборка; если `dist` устарел, закоммитьте
+пересобранные файлы и повторите запуск.
 
-```bash
-bun run test
+Release-it меняет версию, создаёт коммит и тег `vX.Y.Z`, отправляет их в GitHub.
+Затем `scripts/update-major.js` обновляет ветку `vX` до коммита релизного тега.
+Предыдущие major-ветки сохраняются; force-push не используется. npm-пакет и
+страница GitHub Release автоматически не публикуются.
+
+Если обновление major-ветки не прошло после отправки тега, устраните причину
+и повторите только этот шаг, не создавая ещё один релиз:
+
+```sh
+node scripts/update-major.js 3.0.0
 ```
 
-## Автоматическая публикация
-
-Для автоматической публикации новой версии действия используйте следующие
-команды:
-
-```bash
-# Для выпуска новой мажорной версии (1.x.x -> 2.0.0)
-bun publish:major
-
-# Для выпуска новой минорной версии (1.0.0 -> 1.1.0)
-bun publish:minor
-
-# Для выпуска новой патч-версии (1.0.0 -> 1.0.1)
-bun publish:patch
-```
-
-Скрипт публикации выполнит следующие действия:
-
-1. Убедится, что выбрана ветка main
-2. Проверит наличие незакоммиченных изменений (выдаст ошибку, если они есть)
-3. Выполнит сборку проекта с помощью `bun all` или `npm run all`
-4. Обновит версию в package.json и создаст тег
-5. Закоммитит результат сборки
-6. Отправит изменения и теги в удаленный репозиторий
-7. Обновит удалённую ветку `v<major>` (например `v1`, `v2`) фаст-форвард push'ом
-   из main; для мажорного релиза создаст новую ветку, не трогая старую
+Потребители подключают `Inzhenerka/PumpRoom-Publish@v3` либо фиксированный
+`@v3.0.0`. Смена major в их workflows выполняется явно.
 
 ## Source ownership and synchronization
 

@@ -5,7 +5,7 @@
       "name": "Debug Action",
       "type": "node",
       "request": "launch",
-      "runtimeExecutable": "npx",
+      "runtimeExecutable": "bunx",
       "cwd": "${workspaceRoot}",
       "args": ["@github/local-action", ".", "src/main.ts", ".env"],
       "console": "integratedTerminal",

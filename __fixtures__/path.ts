@@ -1,5 +1,5 @@
-import { jest } from '@jest/globals'
+import { vi } from "vitest";
 
-export const join = jest.fn()
-export const dirname = jest.fn()
-export const basename = jest.fn()
+export const join = vi.fn();
+export const dirname = vi.fn();
+export const basename = vi.fn();

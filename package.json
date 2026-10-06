@@ -1,76 +1,91 @@
 {
-  "name": "typescript-action",
-  "description": "GitHub Actions TypeScript template",
+  "name": "pumproom-publish",
   "version": "2.2.0",
-  "author": "",
-  "type": "module",
   "private": true,
-  "homepage": "https://github.com/actions/typescript-action",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/actions/typescript-action.git"
-  },
-  "bugs": {
-    "url": "https://github.com/actions/typescript-action/issues"
-  },
+  "description": "GitHub Action for synchronizing tasks with PumpRoom",
   "keywords": [
     "actions"
   ],
-  "exports": {
-    ".": "./dist/index.js"
-  },
-  "engines": {
-    "node": ">=24"
-  },
-  "scripts": {
-    "bundle": "bun run format:write && bun run package",
-    "ci-test": "NODE_OPTIONS=--experimental-vm-modules NODE_NO_WARNINGS=1 npx jest",
-    "format:write": "npx prettier --write .",
-    "format:check": "npx prettier --check .",
-    "lint": "npx eslint .",
-    "local-action": "npx @github/local-action . src/main.ts .env",
-    "package": "npx rollup --config rollup.config.ts --configPlugin @rollup/plugin-typescript",
-    "package:watch": "bun run package -- --watch",
-    "test": "NODE_OPTIONS=--experimental-vm-modules NODE_NO_WARNINGS=1 npx jest",
-    "all": "bun run format:write && bun run lint && bun run test && bun run package",
-    "publish:major": "node scripts/publish.js major",
-    "publish:minor": "node scripts/publish.js minor",
-    "publish:patch": "node scripts/publish.js patch"
+  "homepage": "https://github.com/Inzhenerka/PumpRoom-Publish",
+  "bugs": {
+    "url": "https://github.com/Inzhenerka/PumpRoom-Publish/issues"
   },
   "license": "MIT",
+  "author": "Inzhenerka.Tech",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Inzhenerka/PumpRoom-Publish.git"
+  },
+  "type": "module",
+  "exports": {
+    ".": "./dist/index.cjs"
+  },
+  "scripts": {
+    "build": "esbuild src/index.ts --bundle --platform=node --target=node24 --format=cjs --sourcemap --outfile=dist/index.cjs",
+    "check": "tsc --noEmit",
+    "format": "oxfmt .",
+    "format:check": "oxfmt . --check",
+    "lint": "oxlint .",
+    "lint:fix": "oxlint . --fix",
+    "test": "vitest run --coverage",
+    "test:watch": "vitest",
+    "prep": "bun run format && bun run check && bun run lint",
+    "verify": "bun run format:check && bun run check && bun run lint && bun run build && bun run test",
+    "local-action": "local-action . src/main.ts .env",
+    "release": "release-it --ci",
+    "release:major": "release-it major --ci",
+    "release:minor": "release-it minor --ci",
+    "release:patch": "release-it patch --ci",
+    "release:dry-run": "release-it --ci --dry-run"
+  },
   "dependencies": {
-    "@actions/core": "^1.11.1",
-    "adm-zip": "^0.5.16"
+    "@actions/core": "^3.0.1",
+    "adm-zip": "^0.6.1"
   },
   "devDependencies": {
-    "@eslint/compat": "^1.3.1",
-    "@types/adm-zip": "^0.5.7",
-    "@github/local-action": "^5.1.0",
-    "@jest/globals": "^30.0.5",
-    "@rollup/plugin-commonjs": "^28.0.6",
-    "@rollup/plugin-json": "^6.1.0",
-    "@rollup/plugin-node-resolve": "^16.0.1",
-    "@rollup/plugin-typescript": "^12.1.4",
-    "@types/jest": "^30.0.0",
-    "@types/node": "^24.1.0",
-    "@typescript-eslint/eslint-plugin": "^8.38.0",
-    "@typescript-eslint/parser": "^8.32.1",
-    "eslint": "^9.32.0",
-    "eslint-config-prettier": "^10.1.8",
-    "eslint-import-resolver-typescript": "^4.4.4",
-    "eslint-plugin-import": "^2.32.0",
-    "eslint-plugin-jest": "^29.0.1",
-    "eslint-plugin-prettier": "^5.5.3",
-    "jest": "^30.0.5",
-    "make-coverage-badge": "^1.2.0",
-    "prettier": "^3.6.2",
-    "prettier-eslint": "^16.4.2",
-    "rollup": "^4.46.0",
-    "ts-jest": "^29.4.0",
-    "ts-jest-resolver": "^2.0.1",
-    "typescript": "^5.8.3"
+    "@github/local-action": "^7.0.1",
+    "@release-it/conventional-changelog": "^12.0.2",
+    "@types/adm-zip": "^0.5.8",
+    "@types/node": "^24.19.1",
+    "@vitest/coverage-istanbul": "^5.0.3",
+    "esbuild": "^0.28.2",
+    "oxfmt": "^0.71.0",
+    "oxlint": "^1.86.0",
+    "release-it": "^21.1.0",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.3"
   },
-  "optionalDependencies": {
-    "@rollup/rollup-linux-x64-gnu": "*"
+  "engines": {
+    "bun": ">=1.4.2",
+    "node": ">=24"
+  },
+  "packageManager": "bun@1.4.2",
+  "release-it": {
+    "git": {
+      "requireBranch": "main",
+      "requireCommits": true,
+      "requireUpstream": true,
+      "commitMessage": "chore: release ${version}",
+      "tagName": "v${version}",
+      "tagAnnotation": "${version}"
+    },
+    "npm": {
+      "publish": false
+    },
+    "hooks": {
+      "before:init": [
+        "bun run verify",
+        "git diff --exit-code -- dist"
+      ],
+      "after:release": "node scripts/update-major.js ${version}"
+    },
+    "plugins": {
+      "@release-it/conventional-changelog": {
+        "preset": {
+          "name": "conventionalcommits"
+        },
+        "infile": false
+      }
+    }
   }
 }
