@@ -5,6 +5,10 @@ import * as path from "path";
 import * as core from "@actions/core";
 import AdmZip from "adm-zip";
 
+import { postWithTimeout } from "./http.js";
+import { redact, taskMetrics, writePublishReport } from "./report.js";
+import type { PublishReport } from "./report.js";
+
 const VALIDATE_URL = "https://pumproom-api.inzhenerka-cloud.com/schema/configs";
 const UPLOAD_URL = "https://pumproom-api.inzhenerka-cloud.com/upload/sync_repo";
 
@@ -22,8 +26,7 @@ export interface PumpRoomApiResponse {
   tasks_uploaded: number;
   tasks_created: number;
   tasks_updated: number;
-  tasks_deleted: number;
-  tasks_restored: number;
+  tasks_archived: number;
   tasks_unchanged: number;
   tasks_skipped: number;
   skipped: { name: string; reason: string }[];
@@ -40,8 +43,7 @@ export function formatPumpRoomResponse(response: PumpRoomApiResponse): string {
   • Uploaded: ${response.tasks_uploaded}
   • Created: ${response.tasks_created}
   • Updated: ${response.tasks_updated}
-  • Deleted: ${response.tasks_deleted}
-  • Restored: ${response.tasks_restored}
+  • Archived: ${response.tasks_archived}
   • Unchanged: ${response.tasks_unchanged}
   • Skipped: ${response.tasks_skipped}
 ${response.skipped.map((item) => `    - ${item.name}: ${item.reason}`).join("\n")}
@@ -53,18 +55,39 @@ function toErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
-async function postWithTimeout(
-  url: string,
-  init: RequestInit,
-  timeoutMs: number,
-): Promise<Response> {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), timeoutMs);
+export function parsePumpRoomResponse(body: string): PumpRoomApiResponse {
+  let data: unknown;
   try {
-    return await fetch(url, { ...init, signal: controller.signal });
-  } finally {
-    clearTimeout(timer);
+    data = JSON.parse(body);
+  } catch {
+    throw new Error("API returned invalid JSON; publication could not be confirmed.");
   }
+  if (!data || typeof data !== "object")
+    throw new Error("API returned an invalid publication result.");
+  const result = data as Record<string, unknown>;
+  if (
+    typeof result.pushed_at !== "string" ||
+    !Number.isFinite(Date.parse(result.pushed_at)) ||
+    taskMetrics.some(
+      ([key]) => !Number.isSafeInteger(result[key]) || (result[key] as number) < 0,
+    ) ||
+    !Array.isArray(result.skipped) ||
+    result.skipped.some(
+      (item: unknown) =>
+        !item ||
+        typeof item !== "object" ||
+        !("name" in item) ||
+        typeof item.name !== "string" ||
+        !("reason" in item) ||
+        typeof item.reason !== "string",
+    ) ||
+    result.tasks_skipped !== result.skipped.length
+  ) {
+    throw new Error(
+      "API returned an incomplete or invalid publication result; check API/Action compatibility.",
+    );
+  }
+  return data as PumpRoomApiResponse;
 }
 
 export async function validateUniqueFolderNames(rootDir: string): Promise<void> {
@@ -114,9 +137,8 @@ export async function validatePumproomYml(rootDir: string): Promise<void> {
 
   const configContent = fs.readFileSync(configPath, "utf8");
 
-  let response: Response;
   try {
-    response = await postWithTimeout(
+    await postWithTimeout(
       VALIDATE_URL,
       {
         method: "POST",
@@ -131,24 +153,23 @@ export async function validatePumproomYml(rootDir: string): Promise<void> {
     });
   }
 
-  if (!response.ok) {
-    const body = await response.text().catch(() => "");
-    throw new Error(
-      `❌ Configuration validation failed:\nStatus code: ${response.status}\nResponse: ${body}\n`,
-    );
-  }
-
   core.info("✅ Configuration is valid");
 }
 
 export async function run(): Promise<void> {
+  const report: PublishReport = { status: "failure", stage: "Inputs", startedAt: Date.now() };
+  let apiKey = "";
   try {
     const rootDir = core.getInput("root_dir") || process.cwd();
     const ignoreInput = core.getInput("ignore") || "";
-    const realm = core.getInput("realm");
-    const repoName = core.getInput("repo_name");
-    const apiKey = core.getInput("api_key");
+    apiKey = core.getInput("api_key", { required: true });
+    core.setSecret(apiKey);
+    const realm = core.getInput("realm", { required: true });
+    report.realm = realm;
+    const repoName = core.getInput("repo_name", { required: true });
+    report.repoName = repoName;
     const sourceRef = resolveSourceRef(core.getInput("source_ref", { trimWhitespace: false }));
+    report.sourceRef = sourceRef;
 
     const ignoreList = [".git", ".github", ".claude"];
     if (ignoreInput) {
@@ -158,26 +179,33 @@ export async function run(): Promise<void> {
     core.debug(`Root directory: ${rootDir}`);
     core.debug(`Ignore list: ${ignoreList.join(", ")}`);
 
+    report.stage = "Folder validation";
     await validateUniqueFolderNames(rootDir);
+    report.stage = "Configuration validation";
     await validatePumproomYml(rootDir);
 
     const tempZipPath = path.join(os.tmpdir(), `pumproom-${Date.now()}-${process.pid}.zip`);
     try {
+      report.stage = "Archive creation";
       await createZipArchive(rootDir, tempZipPath, ignoreList);
-      await uploadArchive(tempZipPath, realm, repoName, apiKey, sourceRef);
+      report.stage = "Upload";
+      report.result = await uploadArchive(tempZipPath, realm, repoName, apiKey, sourceRef);
+      report.status = report.result.tasks_skipped ? "warning" : "success";
+      report.stage = "Completed";
     } finally {
-      if (fs.existsSync(tempZipPath)) {
-        try {
-          fs.unlinkSync(tempZipPath);
-        } catch {
-          // best-effort cleanup
-        }
+      try {
+        if (fs.existsSync(tempZipPath)) fs.unlinkSync(tempZipPath);
+      } catch {
+        // best-effort cleanup
       }
     }
 
     core.info("✅ Repository successfully published to PumpRoom");
   } catch (error) {
-    core.setFailed(toErrorMessage(error));
+    report.error = redact(toErrorMessage(error), apiKey);
+    core.setFailed(`${report.stage}: ${report.error}`);
+  } finally {
+    await writePublishReport(report, apiKey);
   }
 }
 
@@ -226,7 +254,7 @@ export async function uploadArchive(
   repoName: string,
   apiKey: string,
   sourceRef: string,
-): Promise<void> {
+): Promise<PumpRoomApiResponse> {
   core.info("Uploading archive to PumpRoom...");
 
   const buffer = fs.readFileSync(zipPath);
@@ -239,9 +267,9 @@ export async function uploadArchive(
   formData.append("source_ref", sourceRef);
   formData.append("archive", blob, path.basename(zipPath));
 
-  let response: Response;
+  let body: string;
   try {
-    response = await postWithTimeout(
+    body = await postWithTimeout(
       UPLOAD_URL,
       {
         method: "POST",
@@ -251,22 +279,17 @@ export async function uploadArchive(
       600_000,
     );
   } catch (error) {
-    const message = toErrorMessage(error);
-    core.error(`❌ API request failed: ${message}`);
-    throw new Error(`Unable to upload archive: ${message}`, { cause: error });
+    throw new Error(`Unable to upload archive: ${redact(toErrorMessage(error), apiKey)}`, {
+      cause: error,
+    });
   }
 
-  core.info(`Response status: ${response.status}`);
-  if (!response.ok) {
-    const body = await response.text().catch(() => "");
-    core.error(`Status code: ${response.status}`);
-    core.error(`Response: ${body}`);
-    throw new Error(`Unable to upload archive: HTTP ${response.status}`);
-  }
-
-  const data = (await response.json()) as PumpRoomApiResponse;
-  core.info(formatPumpRoomResponse(data));
+  const data = parsePumpRoomResponse(body);
+  core.info(redact(formatPumpRoomResponse(data), apiKey));
   if (data.tasks_skipped)
-    core.warning(`${data.tasks_skipped} task(s) skipped; see ownership conflicts above`);
+    core.warning(
+      `${data.tasks_skipped} task(s) skipped; see names and reasons in the publication summary`,
+    );
   core.info("✅ Repo and tasks successfully registered");
+  return data;
 }

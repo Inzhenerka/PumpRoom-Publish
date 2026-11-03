@@ -12,7 +12,8 @@ GitHub Action для загрузки заданий в LMS PumpRoom
 - Позволяет указать дополнительные файлы/каталоги для исключения
 - Проверяет репозиторий на типовые ошибки
 - Загружает архив в PumpRoom LMS
-- Предоставляет подробные сообщения об ошибках в случае неудачной загрузки
+- Пишет итог публикации в GitHub Actions Summary, включая ошибки и пропуски
+- Передаёт результат и счётчики заданий через outputs
 
 ## Использование
 
@@ -29,7 +30,7 @@ steps:
     uses: actions/checkout@v4
 
   - name: Upload to PumpRoom
-    uses: inzhenerka/pumproom-publish@v1
+    uses: Inzhenerka/PumpRoom-Publish@v3
     with:
       # Обязательно: ID школы из админки
       realm: "your-realm-name"
@@ -70,7 +71,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Upload to PumpRoom
-        uses: inzhenerka/pumproom-publish@v1
+        uses: Inzhenerka/PumpRoom-Publish@v3
         with:
           realm: "inzh"
           repo_name: ${{ github.event.repository.name }}
@@ -80,6 +81,46 @@ jobs:
 
 > **Примечание:** Убедитесь, что вы сохранили свой API-ключ как секрет API_KEY в
 > настройках вашего репозитория.
+
+## Результат публикации и ошибки
+
+После запуска откройте **Actions → запуск workflow → Summary**. Экшен добавляет
+отчёт с итогом, realm, репозиторием, source_ref, SHA коммита, длительностью и этапом.
+При успехе видны количества созданных, обновлённых, архивированных, неизменённых
+и пропущенных заданий; для пропусков приведены имена и причины. Большие списки
+ограничены первыми 100 строками в Summary; полный список остаётся в логах и `result`.
+`tasks_uploaded` — размер входящего снимка, включая неизменённые и пропущенные
+задания, а не число изменений. Архивированные задания могли отсутствовать в снимке.
+
+При ошибке отчёт содержит этап сбоя и детали API. Ошибки валидации показывают
+путь поля и сообщение без исходных значений. Таймауты включают чтение ответа:
+60 секунд для проверки конфигурации, 10 минут для синхронизации.
+
+Пропуски дают предупреждение и `status=warning`, сохраняя успешный статус шага.
+Ошибка делает шаг неуспешным и устанавливает `status=failure`. При сетевом сбое,
+таймауте, ошибке сервера или некорректном ответе после отправки архива изменения
+могли уже сохраниться: проверьте PumpRoom перед повторным запуском. Автоматических
+повторов загрузки нет. Ошибка записи Summary или outputs даёт отдельное
+предупреждение и сохраняет результат самой публикации. При принудительном
+завершении процесса runner не гарантирует запись отчёта.
+
+| Output            | Значение                                                          |
+| ----------------- | ----------------------------------------------------------------- |
+| `status`          | `success`, `warning` (есть пропуски), `failure`                   |
+| `failed_stage`    | Этап сбоя; пустая строка при подтверждённой публикации            |
+| `result`          | Подтверждённый ответ API в JSON, включая время и список пропусков |
+| `tasks_uploaded`  | Размер входящего снимка                                           |
+| `tasks_created`   | Создано                                                           |
+| `tasks_updated`   | Обновлено                                                         |
+| `tasks_archived`  | Архивировано                                                      |
+| `tasks_unchanged` | Без изменений                                                     |
+| `tasks_skipped`   | Пропущено                                                         |
+
+`result` и счётчики устанавливаются только при подтверждённом ответе API.
+Для доступа к outputs задайте шагу `id: publish`, затем используйте, например,
+`${{ steps.publish.outputs.tasks_created }}`. Для обработки outputs после ошибки
+следующему шагу требуется `if: always()`. Дополнительные права GitHub или токен
+для Summary не нужны.
 
 ## Настройка заданий
 
@@ -177,9 +218,10 @@ Publish calls `POST /upload/sync_repo` with a complete snapshot and a stable
 other sources are skipped with names and reasons in the report and a workflow
 warning. They are never overwritten by sync.
 
-Only missing source-managed tasks with this reference in the target PumpRoom
-folder are soft-deleted. A valid empty snapshot deletes that group; never
-publish a partial snapshot. Restoring or updating keeps the UID and history.
+Only missing, unprotected source-managed tasks with this reference in the target
+PumpRoom folder are archived, unless used as a repository default. A valid empty
+snapshot archives that group; never publish a partial snapshot. Archived tasks
+are skipped on subsequent syncs. Updating keeps the UID and history.
 `force_update=false`; `overwrite`, `delete_missing` and `retain_deleted` are not
 sync parameters.
 

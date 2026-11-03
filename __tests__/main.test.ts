@@ -59,14 +59,15 @@ describe("main.ts", () => {
     tasks_uploaded: 33,
     tasks_created: 0,
     tasks_updated: 33,
-    tasks_deleted: 1,
-    tasks_restored: 0,
+    tasks_archived: 1,
     tasks_unchanged: 0,
     tasks_skipped: 1,
     skipped: [{ name: "manual", reason: "managed_by_admin" }],
   };
 
   beforeEach(() => {
+    core.summary.addRaw.mockReturnThis();
+    core.summary.write.mockResolvedValue(undefined);
     admZip.mockImplementation(function () {
       return {
         addLocalFile: admZip.addLocalFile,
@@ -149,6 +150,15 @@ describe("main.ts", () => {
     expect(form.has("retain_deleted")).toBe(false);
     expect(fs.unlinkSync).toHaveBeenCalled();
     expect(core.setFailed).not.toHaveBeenCalled();
+    expect(core.setSecret).toHaveBeenCalledWith(mockApiKey);
+    expect(core.setOutput).toHaveBeenCalledWith("status", "warning");
+    expect(core.setOutput).toHaveBeenCalledWith("tasks_archived", 1);
+    expect(core.setOutput).toHaveBeenCalledWith("result", JSON.stringify(sampleResponse));
+    expect(core.summary.addRaw).toHaveBeenCalledWith(
+      expect.stringContaining("Published with skipped tasks"),
+    );
+    expect(core.summary.addRaw).toHaveBeenCalledWith(expect.stringContaining("managed_by_admin"));
+    expect(core.summary.write).toHaveBeenCalledOnce();
   });
 
   it.each(["   ", " git:course "])(
@@ -182,7 +192,7 @@ describe("main.ts", () => {
     expect(formatted).toContain("Uploaded: 33");
     expect(formatted).toContain("Created: 0");
     expect(formatted).toContain("Updated: 33");
-    expect(formatted).toContain("Deleted: 1");
+    expect(formatted).toContain("Archived: 1");
     expect(formatted).toContain("Skipped: 1");
     expect(formatted).toContain("manual: managed_by_admin");
   });
@@ -201,7 +211,17 @@ describe("main.ts", () => {
 
     await run();
 
-    expect(core.setFailed).toHaveBeenCalled();
+    expect(core.setFailed).toHaveBeenCalledWith(
+      expect.stringContaining("Upload: Unable to upload archive: HTTP 400"),
+    );
+    expect(core.setOutput).toHaveBeenCalledWith("status", "failure");
+    expect(core.setOutput).toHaveBeenCalledWith("failed_stage", "Upload");
+    expect(core.setOutput).not.toHaveBeenCalledWith("tasks_created", expect.anything());
+    expect(core.summary.addRaw).toHaveBeenCalledWith(
+      expect.stringContaining("No confirmed publication result"),
+    );
+    expect(core.summary.addRaw).toHaveBeenCalledWith(expect.stringContaining("Bad Request"));
+    expect(fetchMock).toHaveBeenCalledTimes(2);
     expect(fs.unlinkSync).toHaveBeenCalled();
   });
 
@@ -212,7 +232,87 @@ describe("main.ts", () => {
 
     await run();
 
-    expect(core.setFailed).toHaveBeenCalledWith("File system error");
+    expect(core.setFailed).toHaveBeenCalledWith("Folder validation: File system error");
+  });
+
+  it("reports a confirmed success with no skipped tasks", async () => {
+    (fs.readdirSync as Mock).mockReturnValue([]);
+    fetchMock.mockResolvedValue(jsonResponse({ ...sampleResponse, tasks_skipped: 0, skipped: [] }));
+    await run();
+    expect(core.setOutput).toHaveBeenCalledWith("status", "success");
+    expect(core.summary.addRaw).toHaveBeenCalledWith(expect.stringContaining("✅ Published"));
+    expect(core.warning).not.toHaveBeenCalled();
+  });
+
+  it("writes the validation error summary without attempting an upload", async () => {
+    (fs.readdirSync as Mock).mockReturnValue([]);
+    fetchMock.mockResolvedValue(
+      jsonResponse(
+        {
+          detail: [
+            {
+              loc: ["repo", "tasks", 0, "backend"],
+              msg: "Invalid backend",
+              input: "private value",
+            },
+          ],
+        },
+        422,
+      ),
+    );
+    await run();
+    expect(fetchMock).toHaveBeenCalledOnce();
+    expect(core.setFailed).toHaveBeenCalledWith(
+      expect.stringContaining("repo.tasks.0.backend: Invalid backend"),
+    );
+    expect(core.setOutput).toHaveBeenCalledWith("failed_stage", "Configuration validation");
+    expect(core.summary.addRaw).toHaveBeenCalledWith(expect.stringContaining("Invalid backend"));
+    expect(core.summary.addRaw.mock.calls[0][0]).not.toContain("private value");
+  });
+
+  it("fails early for a missing required input and still reports it", async () => {
+    core.getInput.mockImplementation((name, options) => {
+      if (name === "api_key" && options?.required) throw new Error("Input required: api_key");
+      return "";
+    });
+    await run();
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(core.setFailed).toHaveBeenCalledWith("Inputs: Input required: api_key");
+    expect(core.summary.write).toHaveBeenCalledOnce();
+  });
+
+  it("preserves publication success when GitHub summary writing fails", async () => {
+    (fs.readdirSync as Mock).mockReturnValue([]);
+    core.summary.write.mockRejectedValue(new Error("Summary file unavailable"));
+    await run();
+    expect(core.setFailed).not.toHaveBeenCalled();
+    expect(core.setOutput).toHaveBeenCalledWith("status", "warning");
+    expect(core.warning).toHaveBeenCalledWith(
+      expect.stringContaining("Unable to write GitHub summary"),
+    );
+  });
+
+  it("does not confirm or retry an invalid successful HTTP response", async () => {
+    (fs.readdirSync as Mock).mockReturnValue([]);
+    fetchMock
+      .mockResolvedValueOnce(jsonResponse({}))
+      .mockResolvedValueOnce(jsonResponse("<html>proxy</html>"));
+    await run();
+    expect(core.setFailed).toHaveBeenCalledWith(expect.stringContaining("invalid JSON"));
+    expect(core.setOutput).toHaveBeenCalledWith("status", "failure");
+    expect(core.setOutput).not.toHaveBeenCalledWith("result", expect.anything());
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(fs.unlinkSync).toHaveBeenCalled();
+  });
+
+  it("redacts an API key echoed in an upload error", async () => {
+    (fs.readdirSync as Mock).mockReturnValue([]);
+    fetchMock
+      .mockResolvedValueOnce(jsonResponse({}))
+      .mockResolvedValueOnce(jsonResponse({ detail: `Rejected ${mockApiKey}` }, 403));
+    await run();
+    expect(core.setFailed).toHaveBeenCalledWith(expect.stringContaining("Rejected ***"));
+    expect(core.summary.addRaw.mock.calls[0][0]).not.toContain(mockApiKey);
   });
 
   describe("validateUniqueFolderNames", () => {

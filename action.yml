@@ -32,6 +32,26 @@ inputs:
     description: "API key for authentication"
     required: true
 
+outputs:
+  status:
+    description: "Publication outcome: success, warning (skipped tasks), or failure"
+  failed_stage:
+    description: "Stage that failed; empty on confirmed publication"
+  result:
+    description: "Confirmed API publication result as JSON; absent on failure"
+  tasks_uploaded:
+    description: "Tasks in the uploaded snapshot, including unchanged and skipped tasks"
+  tasks_created:
+    description: "Tasks created"
+  tasks_updated:
+    description: "Tasks updated"
+  tasks_archived:
+    description: "Missing source-managed tasks archived"
+  tasks_unchanged:
+    description: "Tasks unchanged"
+  tasks_skipped:
+    description: "Tasks skipped; names and reasons are in result and the summary"
+
 runs:
   using: node24
   main: dist/index.cjs

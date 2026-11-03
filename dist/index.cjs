@@ -4073,11 +4073,11 @@ var require_util2 = __commonJS({
     var { isUint8Array } = require("node:util/types");
     var { webidl } = require_webidl();
     var supportedHashes = [];
-    var crypto;
+    var crypto2;
     try {
-      crypto = require("node:crypto");
+      crypto2 = require("node:crypto");
       const possibleRelevantHashes = ["sha256", "sha384", "sha512"];
-      supportedHashes = crypto.getHashes().filter((hash) => possibleRelevantHashes.includes(hash));
+      supportedHashes = crypto2.getHashes().filter((hash) => possibleRelevantHashes.includes(hash));
     } catch {
     }
     function responseURL(response) {
@@ -4350,7 +4350,7 @@ var require_util2 = __commonJS({
       }
     }
     function bytesMatch(bytes, metadataList) {
-      if (crypto === void 0) {
+      if (crypto2 === void 0) {
         return true;
       }
       const parsedMetadata = parseMetadata(metadataList);
@@ -4365,7 +4365,7 @@ var require_util2 = __commonJS({
       for (const item of metadata) {
         const algorithm = item.algo;
         const expectedValue = item.hash;
-        let actualValue = crypto.createHash(algorithm).update(bytes).digest("base64");
+        let actualValue = crypto2.createHash(algorithm).update(bytes).digest("base64");
         if (actualValue[actualValue.length - 1] === "=") {
           if (actualValue[actualValue.length - 2] === "=") {
             actualValue = actualValue.slice(0, -2);
@@ -5429,8 +5429,8 @@ var require_body = __commonJS({
     var { multipartFormDataParser } = require_formdata_parser();
     var random;
     try {
-      const crypto = require("node:crypto");
-      random = (max) => crypto.randomInt(0, max);
+      const crypto2 = require("node:crypto");
+      random = (max) => crypto2.randomInt(0, max);
     } catch {
       random = (max) => Math.floor(Math.random(max));
     }
@@ -17070,13 +17070,13 @@ var require_frame = __commonJS({
     "use strict";
     var { maxUnsigned16Bit } = require_constants5();
     var BUFFER_SIZE = 16386;
-    var crypto;
+    var crypto2;
     var buffer = null;
     var bufIdx = BUFFER_SIZE;
     try {
-      crypto = require("node:crypto");
+      crypto2 = require("node:crypto");
     } catch {
-      crypto = {
+      crypto2 = {
         // not full compatibility, but minimum.
         randomFillSync: function randomFillSync(buffer2, _offset, _size) {
           for (let i = 0; i < buffer2.length; ++i) {
@@ -17089,7 +17089,7 @@ var require_frame = __commonJS({
     function generateMask() {
       if (bufIdx === BUFFER_SIZE) {
         bufIdx = 0;
-        crypto.randomFillSync(buffer ??= Buffer.allocUnsafe(BUFFER_SIZE), 0, BUFFER_SIZE);
+        crypto2.randomFillSync(buffer ??= Buffer.allocUnsafe(BUFFER_SIZE), 0, BUFFER_SIZE);
       }
       return [buffer[bufIdx++], buffer[bufIdx++], buffer[bufIdx++], buffer[bufIdx++]];
     }
@@ -17161,9 +17161,9 @@ var require_connection = __commonJS({
     var { Headers: Headers2, getHeadersList } = require_headers();
     var { getDecodeSplit } = require_util2();
     var { WebsocketFrameSend } = require_frame();
-    var crypto;
+    var crypto2;
     try {
-      crypto = require("node:crypto");
+      crypto2 = require("node:crypto");
     } catch {
     }
     function establishWebSocketConnection(url, protocols, client, ws, onEstablish, options) {
@@ -17183,7 +17183,7 @@ var require_connection = __commonJS({
         const headersList = getHeadersList(new Headers2(options.headers));
         request.headersList = headersList;
       }
-      const keyValue = crypto.randomBytes(16).toString("base64");
+      const keyValue = crypto2.randomBytes(16).toString("base64");
       request.headersList.append("sec-websocket-key", keyValue);
       request.headersList.append("sec-websocket-version", "13");
       for (const protocol of protocols) {
@@ -17213,7 +17213,7 @@ var require_connection = __commonJS({
             return;
           }
           const secWSAccept = response.headersList.get("Sec-WebSocket-Accept");
-          const digest = crypto.createHash("sha1").update(keyValue + uid).digest("base64");
+          const digest = crypto2.createHash("sha1").update(keyValue + uid).digest("base64");
           if (secWSAccept !== digest) {
             failWebsocketConnection(ws, "Incorrect hash received in Sec-WebSocket-Accept header.");
             return;
@@ -19702,7 +19702,7 @@ var require_utils2 = __commonJS({
 var require_fattr = __commonJS({
   "node_modules/adm-zip/util/fattr.js"(exports2, module2) {
     var pth = require("path");
-    module2.exports = function(path2, { fs: fs3 }) {
+    module2.exports = function(path2, { fs: fs4 }) {
       var _path = path2 || "", _obj = newAttr(), _stat = null;
       function newAttr() {
         return {
@@ -19714,8 +19714,8 @@ var require_fattr = __commonJS({
           atime: 0
         };
       }
-      if (_path && fs3.existsSync(_path)) {
-        _stat = fs3.statSync(_path);
+      if (_path && fs4.existsSync(_path)) {
+        _stat = fs4.statSync(_path);
         _obj.directory = _stat.isDirectory();
         _obj.mtime = _stat.mtime;
         _obj.atime = _stat.atime;
@@ -21888,8 +21888,8 @@ var require_adm_zip = __commonJS({
 });
 
 // src/main.ts
-var fs2 = __toESM(require("fs"), 1);
-var os4 = __toESM(require("os"), 1);
+var fs3 = __toESM(require("fs"), 1);
+var os5 = __toESM(require("os"), 1);
 var path = __toESM(require("path"), 1);
 
 // node_modules/@actions/core/lib/command.js
@@ -21963,8 +21963,36 @@ function escapeProperty(s) {
   return toCommandValue(s).replace(/%/g, "%25").replace(/\r/g, "%0D").replace(/\n/g, "%0A").replace(/:/g, "%3A").replace(/,/g, "%2C");
 }
 
+// node_modules/@actions/core/lib/file-command.js
+var crypto = __toESM(require("crypto"), 1);
+var fs = __toESM(require("fs"), 1);
+var os2 = __toESM(require("os"), 1);
+function issueFileCommand(command, message) {
+  const filePath = process.env[`GITHUB_${command}`];
+  if (!filePath) {
+    throw new Error(`Unable to find environment variable for file command ${command}`);
+  }
+  if (!fs.existsSync(filePath)) {
+    throw new Error(`Missing file at path: ${filePath}`);
+  }
+  fs.appendFileSync(filePath, `${toCommandValue(message)}${os2.EOL}`, {
+    encoding: "utf8"
+  });
+}
+function prepareKeyValueMessage(key, value) {
+  const delimiter = `ghadelimiter_${crypto.randomUUID()}`;
+  const convertedValue = toCommandValue(value);
+  if (key.includes(delimiter)) {
+    throw new Error(`Unexpected input: name should not contain the delimiter "${delimiter}"`);
+  }
+  if (convertedValue.includes(delimiter)) {
+    throw new Error(`Unexpected input: value should not contain the delimiter "${delimiter}"`);
+  }
+  return `${key}<<${delimiter}${os2.EOL}${convertedValue}${os2.EOL}${delimiter}`;
+}
+
 // node_modules/@actions/core/lib/core.js
-var os3 = __toESM(require("os"), 1);
+var os4 = __toESM(require("os"), 1);
 
 // node_modules/@actions/core/node_modules/@actions/http-client/lib/index.js
 var tunnel = __toESM(require_tunnel2(), 1);
@@ -22304,15 +22332,16 @@ var Summary = class {
   }
 };
 var _summary = new Summary();
+var summary = _summary;
 
 // node_modules/@actions/core/lib/platform.js
 var import_os2 = __toESM(require("os"), 1);
 
 // node_modules/@actions/core/node_modules/@actions/exec/node_modules/@actions/io/lib/io-util.js
-var fs = __toESM(require("fs"), 1);
-var { chmod, copyFile, lstat, mkdir, open, readdir, rename, rm, rmdir, stat, symlink, unlink } = fs.promises;
+var fs2 = __toESM(require("fs"), 1);
+var { chmod, copyFile, lstat, mkdir, open, readdir, rename, rm, rmdir, stat, symlink, unlink } = fs2.promises;
 var IS_WINDOWS = process.platform === "win32";
-var READONLY = fs.constants.O_RDONLY;
+var READONLY = fs2.constants.O_RDONLY;
 
 // node_modules/@actions/core/node_modules/@actions/exec/lib/toolrunner.js
 var IS_WINDOWS2 = process.platform === "win32";
@@ -22327,6 +22356,9 @@ var ExitCode;
   ExitCode2[ExitCode2["Success"] = 0] = "Success";
   ExitCode2[ExitCode2["Failure"] = 1] = "Failure";
 })(ExitCode || (ExitCode = {}));
+function setSecret(secret) {
+  issueCommand("add-mask", {}, secret);
+}
 function getInput(name, options) {
   const val = process.env[`INPUT_${name.replace(/ /g, "_").toUpperCase()}`] || "";
   if (options && options.required && !val) {
@@ -22336,6 +22368,14 @@ function getInput(name, options) {
     return val;
   }
   return val.trim();
+}
+function setOutput(name, value) {
+  const filePath = process.env["GITHUB_OUTPUT"] || "";
+  if (filePath) {
+    return issueFileCommand("OUTPUT", prepareKeyValueMessage(name, value));
+  }
+  process.stdout.write(os4.EOL);
+  issueCommand("set-output", { name }, toCommandValue(value));
 }
 function setFailed(message) {
   process.exitCode = ExitCode.Failure;
@@ -22351,11 +22391,146 @@ function warning(message, properties = {}) {
   issueCommand("warning", toCommandProperties(properties), message instanceof Error ? message.toString() : message);
 }
 function info(message) {
-  process.stdout.write(message + os3.EOL);
+  process.stdout.write(message + os4.EOL);
 }
 
 // src/main.ts
 var import_adm_zip = __toESM(require_adm_zip(), 1);
+
+// src/http.ts
+var MAX_DETAIL_LENGTH = 4e3;
+function errorDetail(body) {
+  try {
+    const data = JSON.parse(body);
+    if (data && typeof data === "object" && "detail" in data) {
+      const detail = data.detail;
+      if (typeof detail === "string") return detail.slice(0, MAX_DETAIL_LENGTH);
+      if (Array.isArray(detail)) {
+        return detail.map((item) => {
+          if (!item || typeof item !== "object") return "Invalid value";
+          const location = Array.isArray(item.loc) ? item.loc.join(".") : "configuration";
+          return `${location}: ${typeof item.msg === "string" ? item.msg : "Invalid value"}`;
+        }).join("\n").slice(0, MAX_DETAIL_LENGTH);
+      }
+    }
+  } catch {
+  }
+  return body.trim().slice(0, MAX_DETAIL_LENGTH) || "No error details returned";
+}
+function httpHint(status) {
+  if (status === 401 || status === 403) return "Check api_key and its access to the target realm.";
+  if (status === 413) return "Reduce the archive size or update the ignore input.";
+  if (status === 422) return "Check .pumproom.yml and the reported fields.";
+  if (status === 429) return "The API is rate limited. Wait before trying again.";
+  if (status >= 500) return "The API or proxy failed. Check the service before trying again.";
+  return "";
+}
+async function postWithTimeout(url, init, timeoutMs) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const response = await fetch(url, { ...init, signal: controller.signal });
+    const body = await response.text();
+    if (!response.ok) {
+      throw new Error(
+        [`HTTP ${response.status}`, errorDetail(body), httpHint(response.status)].filter(Boolean).join("\n")
+      );
+    }
+    return body;
+  } catch (error2) {
+    if (controller.signal.aborted) {
+      throw new Error(`Request timed out after ${timeoutMs / 1e3} seconds.`, { cause: error2 });
+    }
+    throw error2;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+// src/report.ts
+var taskMetrics = [
+  ["tasks_uploaded", "Uploaded (snapshot)"],
+  ["tasks_created", "Created"],
+  ["tasks_updated", "Updated"],
+  ["tasks_archived", "Archived"],
+  ["tasks_unchanged", "Unchanged"],
+  ["tasks_skipped", "Skipped"]
+];
+function redact(value, secret) {
+  return secret ? value.split(secret).join("***") : value;
+}
+function escapeHtml(value) {
+  return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+}
+function formatPublishReport(report, secret = "") {
+  const safe = (value, limit = 8e3) => escapeHtml(redact(value, secret).slice(0, limit));
+  const row = (name, value) => `<tr><td>${name}</td><td>${safe(value)}</td></tr>`;
+  const labels = {
+    success: "\u2705 Published",
+    warning: "\u26A0\uFE0F Published with skipped tasks",
+    failure: "\u274C Publication failed"
+  };
+  let html = `<h2>PumpRoom Publish \u2014 ${labels[report.status]}</h2>
+<table>`;
+  for (const [name, value] of [
+    ["Realm", report.realm],
+    ["Repository", report.repoName],
+    ["Source", report.sourceRef],
+    ["Commit", process.env.GITHUB_SHA],
+    ["Stage", report.stage],
+    ["Duration", `${((Date.now() - report.startedAt) / 1e3).toFixed(1)} s`]
+  ]) {
+    if (value) html += row(name, redact(value, secret).slice(0, 4e3));
+  }
+  html += "</table>\n";
+  if (report.result) {
+    html += `<h3>Tasks</h3><table>${row("Pushed at", report.result.pushed_at)}`;
+    for (const [key, label] of taskMetrics) html += row(label, String(report.result[key]));
+    html += "</table>\n<p>Uploaded is the snapshot size, including unchanged and skipped tasks.</p>";
+    if (report.result.skipped.length) {
+      html += "<h3>Skipped tasks</h3><table><tr><th>Task</th><th>Reason</th></tr>";
+      for (const item of report.result.skipped.slice(0, 100)) {
+        html += row(safe(item.name, 500), redact(item.reason, secret).slice(0, 500));
+      }
+      html += "</table>";
+      if (report.result.skipped.length > 100) {
+        html += "<p>Showing the first 100 skipped tasks; the full list is in the step logs.</p>";
+      }
+    }
+  }
+  if (report.error) html += `<h3>Error</h3><pre>${safe(report.error)}</pre>
+`;
+  if (report.status === "failure" && report.stage === "Upload") {
+    html += "<p>No confirmed publication result was received. A timeout, network error, server error, or invalid response may occur after the server has applied changes. Check PumpRoom before rerunning. This action does not retry uploads automatically.</p>";
+  }
+  return html;
+}
+async function writePublishReport(report, secret) {
+  try {
+    setOutput("status", report.status);
+    setOutput("failed_stage", report.status === "failure" ? report.stage : "");
+    if (report.result) {
+      setOutput(
+        "result",
+        JSON.stringify(
+          report.result,
+          (_key, value) => typeof value === "string" ? redact(value, secret) : value
+        )
+      );
+      for (const [key] of taskMetrics) setOutput(key, report.result[key]);
+    }
+  } catch (error2) {
+    warning(`Unable to write publication outputs: ${redact(String(error2), secret)}`);
+  }
+  try {
+    await summary.addRaw(formatPublishReport(report, secret)).write();
+  } catch (error2) {
+    summary.emptyBuffer();
+    warning(`Unable to write GitHub summary: ${redact(String(error2), secret)}`);
+  }
+}
+
+// src/main.ts
 var VALIDATE_URL = "https://pumproom-api.inzhenerka-cloud.com/schema/configs";
 var UPLOAD_URL = "https://pumproom-api.inzhenerka-cloud.com/upload/sync_repo";
 function resolveSourceRef(override) {
@@ -22377,8 +22552,7 @@ function formatPumpRoomResponse(response) {
   \u2022 Uploaded: ${response.tasks_uploaded}
   \u2022 Created: ${response.tasks_created}
   \u2022 Updated: ${response.tasks_updated}
-  \u2022 Deleted: ${response.tasks_deleted}
-  \u2022 Restored: ${response.tasks_restored}
+  \u2022 Archived: ${response.tasks_archived}
   \u2022 Unchanged: ${response.tasks_unchanged}
   \u2022 Skipped: ${response.tasks_skipped}
 ${response.skipped.map((item) => `    - ${item.name}: ${item.reason}`).join("\n")}
@@ -22388,18 +22562,30 @@ ${response.skipped.map((item) => `    - ${item.name}: ${item.reason}`).join("\n"
 function toErrorMessage(error2) {
   return error2 instanceof Error ? error2.message : String(error2);
 }
-async function postWithTimeout(url, init, timeoutMs) {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), timeoutMs);
+function parsePumpRoomResponse(body) {
+  let data;
   try {
-    return await fetch(url, { ...init, signal: controller.signal });
-  } finally {
-    clearTimeout(timer);
+    data = JSON.parse(body);
+  } catch {
+    throw new Error("API returned invalid JSON; publication could not be confirmed.");
   }
+  if (!data || typeof data !== "object")
+    throw new Error("API returned an invalid publication result.");
+  const result = data;
+  if (typeof result.pushed_at !== "string" || !Number.isFinite(Date.parse(result.pushed_at)) || taskMetrics.some(
+    ([key]) => !Number.isSafeInteger(result[key]) || result[key] < 0
+  ) || !Array.isArray(result.skipped) || result.skipped.some(
+    (item) => !item || typeof item !== "object" || !("name" in item) || typeof item.name !== "string" || !("reason" in item) || typeof item.reason !== "string"
+  ) || result.tasks_skipped !== result.skipped.length) {
+    throw new Error(
+      "API returned an incomplete or invalid publication result; check API/Action compatibility."
+    );
+  }
+  return data;
 }
 async function validateUniqueFolderNames(rootDir) {
   info("\u{1F50D} Validating unique folder names...");
-  const folders = fs2.readdirSync(rootDir).filter((item) => fs2.statSync(path.join(rootDir, item)).isDirectory());
+  const folders = fs3.readdirSync(rootDir).filter((item) => fs3.statSync(path.join(rootDir, item)).isDirectory());
   if (folders.length === 0) {
     info("\u2139\uFE0F No folders found to validate");
     return;
@@ -22430,13 +22616,12 @@ async function validateUniqueFolderNames(rootDir) {
 async function validatePumproomYml(rootDir) {
   info("\u{1F50D} Validating .pumproom.yml...");
   const configPath = path.join(rootDir, ".pumproom.yml");
-  if (!fs2.existsSync(configPath)) {
+  if (!fs3.existsSync(configPath)) {
     throw new Error("\u274C .pumproom.yml file not found");
   }
-  const configContent = fs2.readFileSync(configPath, "utf8");
-  let response;
+  const configContent = fs3.readFileSync(configPath, "utf8");
   try {
-    response = await postWithTimeout(
+    await postWithTimeout(
       VALIDATE_URL,
       {
         method: "POST",
@@ -22452,55 +22637,59 @@ Error: ${toErrorMessage(error2)}
       cause: error2
     });
   }
-  if (!response.ok) {
-    const body = await response.text().catch(() => "");
-    throw new Error(
-      `\u274C Configuration validation failed:
-Status code: ${response.status}
-Response: ${body}
-`
-    );
-  }
   info("\u2705 Configuration is valid");
 }
 async function run() {
+  const report = { status: "failure", stage: "Inputs", startedAt: Date.now() };
+  let apiKey = "";
   try {
     const rootDir = getInput("root_dir") || process.cwd();
     const ignoreInput = getInput("ignore") || "";
-    const realm = getInput("realm");
-    const repoName = getInput("repo_name");
-    const apiKey = getInput("api_key");
+    apiKey = getInput("api_key", { required: true });
+    setSecret(apiKey);
+    const realm = getInput("realm", { required: true });
+    report.realm = realm;
+    const repoName = getInput("repo_name", { required: true });
+    report.repoName = repoName;
     const sourceRef = resolveSourceRef(getInput("source_ref", { trimWhitespace: false }));
+    report.sourceRef = sourceRef;
     const ignoreList = [".git", ".github", ".claude"];
     if (ignoreInput) {
       ignoreList.push(...ignoreInput.split(",").map((item) => item.trim()));
     }
     debug(`Root directory: ${rootDir}`);
     debug(`Ignore list: ${ignoreList.join(", ")}`);
+    report.stage = "Folder validation";
     await validateUniqueFolderNames(rootDir);
+    report.stage = "Configuration validation";
     await validatePumproomYml(rootDir);
-    const tempZipPath = path.join(os4.tmpdir(), `pumproom-${Date.now()}-${process.pid}.zip`);
+    const tempZipPath = path.join(os5.tmpdir(), `pumproom-${Date.now()}-${process.pid}.zip`);
     try {
+      report.stage = "Archive creation";
       await createZipArchive(rootDir, tempZipPath, ignoreList);
-      await uploadArchive(tempZipPath, realm, repoName, apiKey, sourceRef);
+      report.stage = "Upload";
+      report.result = await uploadArchive(tempZipPath, realm, repoName, apiKey, sourceRef);
+      report.status = report.result.tasks_skipped ? "warning" : "success";
+      report.stage = "Completed";
     } finally {
-      if (fs2.existsSync(tempZipPath)) {
-        try {
-          fs2.unlinkSync(tempZipPath);
-        } catch {
-        }
+      try {
+        if (fs3.existsSync(tempZipPath)) fs3.unlinkSync(tempZipPath);
+      } catch {
       }
     }
     info("\u2705 Repository successfully published to PumpRoom");
   } catch (error2) {
-    setFailed(toErrorMessage(error2));
+    report.error = redact(toErrorMessage(error2), apiKey);
+    setFailed(`${report.stage}: ${report.error}`);
+  } finally {
+    await writePublishReport(report, apiKey);
   }
 }
 async function createZipArchive(sourceDir, outputPath, ignoreList) {
   info("Creating ZIP archive...");
   const zip = new import_adm_zip.default();
   function addFilesToZip(currentPath, relativePath = "") {
-    for (const item of fs2.readdirSync(currentPath)) {
+    for (const item of fs3.readdirSync(currentPath)) {
       const itemPath = path.join(currentPath, item);
       const itemRelativePath = relativePath ? path.join(relativePath, item) : item;
       const segments = itemRelativePath.split(/[/\\]/);
@@ -22508,7 +22697,7 @@ async function createZipArchive(sourceDir, outputPath, ignoreList) {
         debug(`Ignoring: ${itemPath}`);
         continue;
       }
-      if (fs2.statSync(itemPath).isDirectory()) {
+      if (fs3.statSync(itemPath).isDirectory()) {
         addFilesToZip(itemPath, itemRelativePath);
       } else {
         debug(`Adding file: ${itemPath} as ${itemRelativePath}`);
@@ -22522,7 +22711,7 @@ async function createZipArchive(sourceDir, outputPath, ignoreList) {
 }
 async function uploadArchive(zipPath, realm, repoName, apiKey, sourceRef) {
   info("Uploading archive to PumpRoom...");
-  const buffer = fs2.readFileSync(zipPath);
+  const buffer = fs3.readFileSync(zipPath);
   const blob = new Blob([new Uint8Array(buffer)], { type: "application/zip" });
   const formData = new FormData();
   formData.append("realm", realm);
@@ -22530,9 +22719,9 @@ async function uploadArchive(zipPath, realm, repoName, apiKey, sourceRef) {
   formData.append("force_update", "false");
   formData.append("source_ref", sourceRef);
   formData.append("archive", blob, path.basename(zipPath));
-  let response;
+  let body;
   try {
-    response = await postWithTimeout(
+    body = await postWithTimeout(
       UPLOAD_URL,
       {
         method: "POST",
@@ -22542,22 +22731,18 @@ async function uploadArchive(zipPath, realm, repoName, apiKey, sourceRef) {
       6e5
     );
   } catch (error2) {
-    const message = toErrorMessage(error2);
-    error(`\u274C API request failed: ${message}`);
-    throw new Error(`Unable to upload archive: ${message}`, { cause: error2 });
+    throw new Error(`Unable to upload archive: ${redact(toErrorMessage(error2), apiKey)}`, {
+      cause: error2
+    });
   }
-  info(`Response status: ${response.status}`);
-  if (!response.ok) {
-    const body = await response.text().catch(() => "");
-    error(`Status code: ${response.status}`);
-    error(`Response: ${body}`);
-    throw new Error(`Unable to upload archive: HTTP ${response.status}`);
-  }
-  const data = await response.json();
-  info(formatPumpRoomResponse(data));
+  const data = parsePumpRoomResponse(body);
+  info(redact(formatPumpRoomResponse(data), apiKey));
   if (data.tasks_skipped)
-    warning(`${data.tasks_skipped} task(s) skipped; see ownership conflicts above`);
+    warning(
+      `${data.tasks_skipped} task(s) skipped; see names and reasons in the publication summary`
+    );
   info("\u2705 Repo and tasks successfully registered");
+  return data;
 }
 
 // src/index.ts

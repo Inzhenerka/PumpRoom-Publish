@@ -123,6 +123,6 @@ describe("Edge cases in run function", () => {
 
     await run();
 
-    expect(core.setFailed).toHaveBeenCalledWith("Not an Error object");
+    expect(core.setFailed).toHaveBeenCalledWith("Folder validation: Not an Error object");
   });
 });
