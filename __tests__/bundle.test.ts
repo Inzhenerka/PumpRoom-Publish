@@ -20,11 +20,12 @@ it.each(["success", "warning", "failure"])(
         preload,
         `
       import assert from 'node:assert/strict';
+      assert.equal(process.versions.bun, undefined, 'The action bundle must run in Node.js');
       let calls = 0;
       globalThis.fetch = async (url, init) => {
         calls++;
         if (calls === 1) {
-          assert.ok(url.endsWith('/schema/configs'));
+          assert.ok(url.endsWith('/schema/config'));
           return new Response('{}');
         }
         assert.equal(calls, 2);
@@ -44,26 +45,22 @@ it.each(["success", "warning", "failure"])(
       process.on('exit', () => assert.equal(calls, 2));
     `,
       );
-      const processResult = spawnSync(
-        process.execPath,
-        ["--import", pathToFileURL(preload).href, bundle],
-        {
-          cwd: root,
-          encoding: "utf8",
-          env: {
-            ...process.env,
-            INPUT_ROOT_DIR: root,
-            INPUT_IGNORE: "mock-fetch.mjs,summary.html,outputs.txt",
-            GITHUB_STEP_SUMMARY: join(root, "summary.html"),
-            GITHUB_OUTPUT: join(root, "outputs.txt"),
-            INPUT_REALM: "test",
-            INPUT_REPO_NAME: "test",
-            INPUT_API_KEY: "test-only",
-            INPUT_SOURCE_REF: " git:course ",
-            MOCK_OUTCOME: outcome,
-          },
+      const processResult = spawnSync("node", ["--import", pathToFileURL(preload).href, bundle], {
+        cwd: root,
+        encoding: "utf8",
+        env: {
+          ...process.env,
+          INPUT_ROOT_DIR: root,
+          INPUT_IGNORE: "mock-fetch.mjs,summary.html,outputs.txt",
+          GITHUB_STEP_SUMMARY: join(root, "summary.html"),
+          GITHUB_OUTPUT: join(root, "outputs.txt"),
+          INPUT_REALM: "test",
+          INPUT_REPO_NAME: "test",
+          INPUT_API_KEY: "test-only",
+          INPUT_SOURCE_REF: " git:course ",
+          MOCK_OUTCOME: outcome,
         },
-      );
+      });
       expect(processResult.error).toBeUndefined();
       expect(processResult.status).toBe(outcome === "failure" ? 1 : 0);
       const summary = readFileSync(join(root, "summary.html"), "utf8");

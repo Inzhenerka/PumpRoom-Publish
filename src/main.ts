@@ -9,7 +9,7 @@ import { postWithTimeout } from "./http.js";
 import { redact, taskMetrics, writePublishReport } from "./report.js";
 import type { PublishReport } from "./report.js";
 
-const VALIDATE_URL = "https://pumproom-api.inzhenerka-cloud.com/schema/configs";
+const VALIDATE_URL = "https://pumproom-api.inzhenerka-cloud.com/schema/config";
 const UPLOAD_URL = "https://pumproom-api.inzhenerka-cloud.com/upload/sync_repo";
 
 export function resolveSourceRef(override: string): string {

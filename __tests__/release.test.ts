@@ -14,8 +14,7 @@ it("publishes the tagged commit, preserves v2 and refuses non-fast-forward updat
       encoding: "utf8",
       stdio: ["ignore", "pipe", "pipe"],
     }).trim();
-  const publish = () =>
-    execFileSync(process.execPath, [script, "3.0.0"], { cwd: root, stdio: "pipe" });
+  const publish = () => execFileSync("bun", [script, "3.0.0"], { cwd: root, stdio: "pipe" });
   try {
     git("init", "--bare", "remote.git");
     git("init", "-b", "main");

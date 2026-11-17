@@ -139,7 +139,7 @@ describe("main.ts", () => {
     expect(core.info).toHaveBeenCalledWith("🔍 Validating .pumproom.yml...");
     expect(fetchMock).toHaveBeenCalledTimes(2);
     expect(fetchMock.mock.calls[0][0]).toBe(
-      "https://pumproom-api.inzhenerka-cloud.com/schema/configs",
+      "https://pumproom-api.inzhenerka-cloud.com/schema/config",
     );
     const form = fetchMock.mock.calls[1][1]?.body as FormData;
     expect(form.get("source_ref")).toBe("https://github.com/example/tasks");

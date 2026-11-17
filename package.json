@@ -27,33 +27,31 @@
     "format:check": "oxfmt . --check",
     "lint": "oxlint .",
     "lint:fix": "oxlint . --fix",
-    "test": "vitest run --coverage",
-    "test:watch": "vitest",
+    "test": "bun ./node_modules/.bin/vitest run --coverage",
+    "test:watch": "bun ./node_modules/.bin/vitest",
     "prep": "bun run format && bun run check && bun run lint",
     "verify": "bun run format:check && bun run check && bun run lint && bun run build && bun run test",
-    "local-action": "local-action . src/main.ts .env",
-    "release": "release-it --ci",
-    "release:major": "release-it major --ci",
-    "release:minor": "release-it minor --ci",
-    "release:patch": "release-it patch --ci",
-    "release:dry-run": "release-it --ci --dry-run"
+    "local-action": "bun --env-file=.env src/index.ts",
+    "release": "bun ./node_modules/.bin/release-it --ci",
+    "release:major": "bun run release major",
+    "release:minor": "bun run release minor",
+    "release:patch": "bun run release patch",
+    "release:dry-run": "bun run release --dry-run"
   },
   "dependencies": {
     "@actions/core": "^3.0.1",
     "adm-zip": "^0.6.1"
   },
   "devDependencies": {
-    "@github/local-action": "^7.0.1",
     "@release-it/conventional-changelog": "^12.0.2",
-    "@types/adm-zip": "^0.5.8",
-    "@types/node": "^24.19.1",
-    "@vitest/coverage-istanbul": "^5.0.3",
+    "@types/node": "^24.19.2",
+    "@vitest/coverage-istanbul": "^5.1.0",
     "esbuild": "^0.28.2",
-    "oxfmt": "^0.71.0",
-    "oxlint": "^1.86.0",
-    "release-it": "^21.1.0",
+    "oxfmt": "^0.78.0",
+    "oxlint": "^1.93.0",
+    "release-it": "^21.1.2",
     "typescript": "^7.0.2",
-    "vitest": "^5.0.3"
+    "vitest": "^5.1.0"
   },
   "engines": {
     "bun": ">=1.4.2",
@@ -69,15 +67,14 @@
       "tagName": "v${version}",
       "tagAnnotation": "${version}"
     },
-    "npm": {
-      "publish": false
-    },
+    "npm": false,
     "hooks": {
       "before:init": [
         "bun run verify",
         "git diff --exit-code -- dist"
       ],
-      "after:release": "node scripts/update-major.js ${version}"
+      "after:bump": "bun pm version ${version} --no-git-tag-version",
+      "after:release": "bun scripts/update-major.js ${version}"
     },
     "plugins": {
       "@release-it/conventional-changelog": {
